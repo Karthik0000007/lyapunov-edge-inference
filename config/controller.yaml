@@ -1,0 +1,50 @@
+# ── Controller Configuration ─────────────────────────────────────────────────
+# Adaptive compute controller (Lyapunov-constrained PPO by default).
+
+agent:
+  type: lyapunov_ppo               # Options: rule_based | pid | ppo_lagrangian | lyapunov_ppo
+  decision_frequency: 5            # Controller decides every k-th frame
+  checkpoint_dir: checkpoints/ppo_lyapunov/
+
+ppo:
+  gamma: 0.99                      # Discount factor γ
+  gae_lambda: 0.95                 # GAE λ parameter
+  clip_epsilon: 0.2                # PPO clip range ε
+  entropy_coeff: 0.01              # Entropy bonus coefficient
+  value_loss_coeff: 0.5            # Value loss weighting
+  max_grad_norm: 0.5               # Gradient norm clipping
+  hidden_size: 64                  # MLP hidden layer width
+  num_layers: 2                    # Number of hidden layers
+
+lagrangian:
+  lambda_init: 0.1                 # Initial Lagrange multiplier λ₀
+  lambda_lr: 0.01                  # Dual variable learning rate η_λ
+  constraint_threshold: 0.01      # Constraint budget δ (= max violation rate)
+
+lyapunov:
+  enabled: true                    # Toggle Lyapunov safety layer
+  critic_lr: 3.0e-4                # Lyapunov critic learning rate
+  drift_tolerance: 0.0             # Max allowed drift (0 = strict ≤ 0 condition)
+
+conformal:
+  enabled: true                    # Toggle adaptive conformal prediction
+  alpha_target: 0.01               # Nominal miscoverage rate (P99 bound)
+  alpha_lr: 0.005                  # ACI learning rate η
+  calibration_size: 5000           # Min calibration set size
+  predictor_hidden_size: 32        # Latency predictor hidden width
+  predictor_checkpoint: checkpoints/conformal/latency_predictor.pt
+
+fallback:
+  enabled: true                    # Toggle hard-safety fallback rule
+  consecutive_violations: 3        # Violations before fallback activates
+  recovery_window: 50              # Frames before attempting fallback exit
+
+reward:
+  quality_weight: 1.0              # α₁ — detection quality weight
+  churn_penalty: 0.05              # α₃ — action-churn L1 penalty
+
+online_training:
+  enabled: false                   # Disable online PPO updates by default
+  lr: 1.0e-5                       # Online learning rate
+  update_interval: 1000            # Steps between gradient updates
+  min_buffer_size: 2000            # Min replay buffer size before first update

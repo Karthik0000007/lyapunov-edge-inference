@@ -1,0 +1,35 @@
+# ── Deployment Configuration (Production Overrides) ──────────────────────────
+# Loaded on top of pipeline.yaml + controller.yaml in production.
+# Only fields that differ from development defaults are listed here.
+
+# ── Pipeline overrides ────────────────────────────────────────────────────────
+camera:
+  source: 0
+  fps: 30
+  queue_size: 10
+
+telemetry:
+  output_dir: traces/
+  rotation_frames: 100000
+  log_level: WARNING               # Quieter logging in production
+
+# ── Controller overrides ──────────────────────────────────────────────────────
+agent:
+  type: lyapunov_ppo
+  decision_frequency: 5
+  checkpoint_dir: checkpoints/ppo_lyapunov/
+
+online_training:
+  enabled: false                   # Online training disabled in production
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+dashboard:
+  host: 127.0.0.1                  # Bind only to localhost in production
+  port: 8501
+  theme: dark
+
+# ── Runtime safety ────────────────────────────────────────────────────────────
+fallback:
+  enabled: true
+  consecutive_violations: 3
+  recovery_window: 50

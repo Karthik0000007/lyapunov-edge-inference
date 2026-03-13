@@ -1,0 +1,42 @@
+# ── Pipeline Configuration ────────────────────────────────────────────────────
+# Lyapunov-Constrained RL Edge Inference Pipeline
+# All values can be overridden by environment variables (see src/utils.py).
+
+camera:
+  source: 0                        # Device index (int) or file path (str)
+  fps: 30
+  queue_size: 10                   # Max frames buffered (backpressure / drop policy)
+
+preprocessing:
+  clahe:
+    clip_limit: 2.0                # CLAHE contrast limit
+    tile_grid_size: [8, 8]         # Grid tile dimensions (H, W)
+  edge_channel: true               # Append Canny edge map as 4th channel
+  tiling:
+    enabled: false                 # Multi-scale tiling (disabled by default)
+    overlap: 0.1                   # Fractional tile overlap when enabled
+
+detection:
+  resolutions: [320, 480, 640]     # Available engine resolutions (controller picks)
+  default_resolution: 640          # Resolution used before controller warms up
+  confidence_base: 0.25            # Base NMS confidence threshold
+  confidence_steps: [0.0, 0.1, 0.2]  # Additive offsets for threshold_index {0,1,2}
+  iou_threshold: 0.45              # NMS IoU threshold
+  max_detections: 100              # Maximum boxes returned per frame
+  engine_dir: models/detection/    # Directory containing .engine files
+
+segmentation:
+  enabled: true                    # Whether Stage 2 may ever run
+  resolution: 256                  # Fixed ROI crop size fed to UNet
+  min_confidence: 0.5              # Only segment ROIs with Stage 1 score ≥ this
+  engine_path: models/segmentation/unet_fp16.engine
+
+latency:
+  budget_ms: 50.0                  # Hard P99 per-frame target (ms)
+  constraint_delta: 0.01           # Max acceptable violation rate (1 %)
+  window_size: 50                  # Sliding window length for latency statistics
+
+telemetry:
+  output_dir: traces/              # Parquet output directory
+  rotation_frames: 100000          # New file every N frames
+  log_level: INFO                  # Python logging level for this process
