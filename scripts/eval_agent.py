@@ -54,7 +54,7 @@ def _default_agent_config(checkpoint_dir: str) -> Dict[str, Any]:
             "entropy_coeff": 0.01,
             "value_loss_coeff": 0.5,
             "max_grad_norm": 0.5,
-            "hidden_size": 64,
+            "hidden_size": 128,
         },
         "lagrangian": {
             "lambda_init": 0.1,
@@ -64,7 +64,7 @@ def _default_agent_config(checkpoint_dir: str) -> Dict[str, Any]:
         "lyapunov": {
             "enabled": True,
             "critic_lr": 3e-4,
-            "drift_tolerance": 0.0,
+            "drift_tolerance": 0.05,
         },
         "agent": {
             "checkpoint_dir": checkpoint_dir,

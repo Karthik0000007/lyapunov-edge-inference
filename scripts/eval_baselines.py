@@ -179,7 +179,7 @@ def build_methods(
                      "max_grad_norm": 0.5, "hidden_size": 64},
             "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01,
                            "constraint_threshold": 0.01},
-            "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.0},
+            "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
             "agent": {"checkpoint_dir": str(ckpt)},
         }
         agent = LyapunovPPOAgent(config, device=device)
@@ -310,7 +310,7 @@ def main(argv: List[str] | None = None) -> None:
             if n_nonzero == 0:
                 p_val = 1.0
             else:
-                p_val = float(stats.binom_test(n_pos, n_nonzero, 0.5))
+                p_val = float(stats.binomtest(n_pos, n_nonzero, 0.5).pvalue)
             stat = float(n_pos)
         else:
             stat, p_val = stats.wilcoxon(ref_p99, other_p99)

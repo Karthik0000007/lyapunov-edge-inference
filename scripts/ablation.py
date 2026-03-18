@@ -251,7 +251,7 @@ def main(argv: List[str] | None = None) -> None:
                  "max_grad_norm": 0.5, "hidden_size": 64},
         "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01,
                        "constraint_threshold": 0.01},
-        "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.0},
+        "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
         "agent": {"checkpoint_dir": str(args.checkpoint)},
     }
     agent = LyapunovPPOAgent(config, device=device)
