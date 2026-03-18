@@ -396,7 +396,7 @@ def main(argv: List[str] | None = None) -> None:
         "lyapunov": {
             "enabled": True,
             "critic_lr": 3e-4,
-            "drift_tolerance": 0.0,
+            "drift_tolerance": 0.05,
         },
         "agent": {
             "checkpoint_dir": str(args.output_dir),

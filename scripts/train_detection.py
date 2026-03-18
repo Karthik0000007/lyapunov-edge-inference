@@ -120,9 +120,18 @@ def _prepare_yolo_dataset(neu_root: Path, output_dir: Path) -> Path:
             for class_dir in sorted(img_root.iterdir()):
                 if not class_dir.is_dir():
                     continue
+                # Try exact filename first, then with common image extensions
                 candidate = class_dir / filename
+                if not candidate.exists():
+                    for ext in [".jpg", ".png", ".jpeg"]:
+                        candidate = class_dir / (filename + ext)
+                        if candidate.exists():
+                            break
+
                 if candidate.exists():
-                    dst_img = img_dst / filename
+                    # Use the original filename from XML + extension from actual file
+                    file_ext = candidate.suffix
+                    dst_img = img_dst / (filename + file_ext)
                     if not dst_img.exists():
                         shutil.copy2(candidate, dst_img)
                     img_found = True
@@ -194,10 +203,38 @@ def train(
     )
 
     # Locate the best checkpoint produced by Ultralytics.
-    train_dir = output_dir / "yolov8n_finetune"
+    # Ultralytics creates nested directories: output_dir/detect/project/run/...
+    # Search for the weights directory under yolov8n_finetune
+    possible_dirs = [
+        output_dir / "yolov8n_finetune",
+        output_dir / "detect" / str(output_dir.name) / "yolov8n_finetune",
+        Path.cwd() / output_dir / "detect" / str(output_dir.name) / "yolov8n_finetune",
+    ]
+
+    train_dir = None
+    for pdir in possible_dirs:
+        if (pdir / "weights" / "best.pt").exists() or (pdir / "weights" / "last.pt").exists():
+            train_dir = pdir
+            break
+
+    if train_dir is None:
+        # Last resort: search recursively
+        import glob
+        weights_paths = list(Path(output_dir).glob("**/yolov8n_finetune/weights"))
+        if weights_paths:
+            train_dir = weights_paths[0].parent
+
+    if train_dir is None:
+        logger.error("Could not locate training output directory")
+        return Path("models/detection/yolov8n_best.pt")
+
     best_pt = train_dir / "weights" / "best.pt"
     if not best_pt.exists():
         best_pt = train_dir / "weights" / "last.pt"
+
+    if not best_pt.exists():
+        logger.error("No checkpoint found at %s", best_pt)
+        return Path("models/detection/yolov8n_best.pt")
 
     # Copy best checkpoint to canonical models/ location.
     final_dir = Path("models/detection")
