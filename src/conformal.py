@@ -296,7 +296,9 @@ class ConformalPredictor:
 
     def load_state(self, path: Path) -> None:
         """Restore conformal state from disk."""
-        data = torch.load(path, map_location="cpu", weights_only=True)
+        data = torch.load(
+            path, map_location="cpu", weights_only=True
+        )
         self._alpha = data["alpha"]
         self._quantile = data["quantile"]
         self._calibrated = data["calibrated"]

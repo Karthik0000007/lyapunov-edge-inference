@@ -260,7 +260,9 @@ class LatencyPredictor:
     def load(self, path: Optional[Path] = None) -> None:
         """Load model weights from disk."""
         path = path or self._checkpoint_path
-        state_dict = torch.load(path, map_location=self._device, weights_only=True)
+        state_dict = torch.load(
+            path, map_location=self._device, weights_only=True
+        )
         self._model.load_state_dict(state_dict)
         self._model.eval()
 
