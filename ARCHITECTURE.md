@@ -1285,7 +1285,9 @@ lyapunov-edge-inference/
 ├── traces/                      # Logged telemetry traces (Parquet)
 ├── data/
 │   ├── README.md                # Dataset download instructions
-│   ├── mvtec_ad/                # MVTec AD dataset (download separately)
+│   ├── NEU-DET/                 # NEU-DET steel surface defect dataset (detection training, VOC format)
+│   ├── KolektorSDD2/            # KolektorSDD2 dataset (segmentation training, pixel masks)
+│   ├── mvtec_ad/                # MVTec AD subset — metal/PCB/cable only (generalization/ablation only)
 │   └── calibration/             # Calibration images for conformal prediction
 ├── results/
 │   ├── figures/                 # Generated plots
@@ -1339,20 +1341,22 @@ docker run --gpus all -p 8501:8501 -v $(pwd)/data:/app/data lyapunov-edge-infere
 
 ### Quick Start (End-to-End)
 
-**Step 1: Download dataset**
+**Step 1: Download datasets**
 ```bash
 # Follow instructions in data/README.md
-# MVTec AD is the primary dataset
+# NEU-DET  → detection training  (6-class steel surface defects, VOC bbox format)
+# KolektorSDD2 → segmentation training (binary pixel masks)
+# MVTec AD subset → generalization / ablation only (metal, PCB, cable; no bbox labels)
 ```
 
 **Step 2: Train detection model**
 ```bash
-python scripts/train_detection.py --data data/mvtec_ad --epochs 100 --imgsz 640
+python scripts/train_detection.py --data dataset/NEU/NEU-DET --epochs 150 --imgsz 640
 ```
 
 **Step 3: Train segmentation model**
 ```bash
-python scripts/train_segmentation.py --data data/mvtec_ad --epochs 50
+python scripts/train_segmentation.py --data dataset/KolektorSDD2 --epochs 120
 ```
 
 **Step 4: Export to TensorRT**
@@ -1682,7 +1686,9 @@ For $N = 10{,}000$, $\epsilon = 0.005$: $\Pr[|\hat{p} - p| \geq 0.005] \leq 2e^{
 | [2] | Gibbs & Candès. _"Adaptive Conformal Inference Under Distribution Shift."_ NeurIPS 2021. | ACI online coverage adaptation |
 | [3] | Schulman et al. _"Proximal Policy Optimization Algorithms."_ arXiv 2017. | PPO algorithm |
 | [4] | Jocher et al. _"Ultralytics YOLOv8."_ 2023. | Detection backbone |
-| [5] | Bergmann et al. _"MVTec AD — A Comprehensive Real-World Dataset for Unsupervised Anomaly Detection."_ CVPR 2019. | Primary evaluation dataset |
+| [5] | Bergmann et al. _"MVTec AD — A Comprehensive Real-World Dataset for Unsupervised Anomaly Detection."_ CVPR 2019. | Generalization / ablation dataset (metal, PCB, cable subsets) |
+| [9] | Song & Yan. _"NEU Surface Defect Database."_ 2013. (Northeastern University) | Primary detection training dataset (6-class steel defects, VOC bbox format) |
+| [10] | Bošković & Tabernik et al. _"KolektorSDD2."_ 2021. | Primary segmentation training dataset (binary pixel-level defect masks) |
 | [6] | Ronneberger et al. _"U-Net: Convolutional Networks for Biomedical Image Segmentation."_ MICCAI 2015. | Segmentation architecture foundation |
 | [7] | Tessler et al. _"Reward Constrained Policy Optimization."_ ICLR 2019. | Lagrangian CMDP baseline |
 | [8] | Vovk et al. _"Algorithmic Learning in a Random World."_ Springer 2005. | Conformal prediction foundations |

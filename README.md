@@ -90,12 +90,15 @@ docker run --gpus all -p 8501:8501 -v $(pwd)/data:/app/data lyapunov-edge-infere
 ## Quick Start (End-to-End)
 
 ```bash
-# 1. Download the MVTec AD dataset
+# 1. Download datasets
 #    Follow instructions in data/README.md
+#    NEU-DET      → detection training  (6-class steel defects, VOC bbox format)
+#    KolektorSDD2 → segmentation training (binary pixel masks)
+#    MVTec AD subset → generalization/ablation only (metal, PCB, cable; no bbox labels)
 
 # 2. Train and export models
-python scripts/train_detection.py    --data data/mvtec_ad --epochs 100 --imgsz 640
-python scripts/train_segmentation.py --data data/mvtec_ad --epochs 50
+python scripts/train_detection.py    --data dataset/NEU/NEU-DET --epochs 150 --imgsz 640
+python scripts/train_segmentation.py --data dataset/KolektorSDD2 --epochs 120
 
 python scripts/export_onnx.py   --model detection    --checkpoint models/detection/best.pt
 python scripts/export_onnx.py   --model segmentation --checkpoint models/segmentation/best.pt
@@ -166,11 +169,31 @@ lyapunov-edge-inference/
 ├── models/                  # TensorRT engines (detection 320/480/640, segmentation)
 ├── checkpoints/             # RL weights + conformal state
 ├── traces/                  # Logged telemetry (Parquet)
-├── data/                    # MVTec AD dataset + calibration images
+├── data/                    # NEU-DET + KolektorSDD2 + MVTec AD subset + calibration images
 ├── results/                 # Figures, tables, experiment logs
 ├── tests/                   # Unit + integration tests
 └── demo/                    # Demo recording script + video
 ```
+
+---
+
+## TensorRT Engine Build
+
+The pipeline requires pre-compiled TensorRT `.engine` files for detection (320/480/640) and segmentation (256). See **[docs/ENGINE_BUILD.md](docs/ENGINE_BUILD.md)** for full build instructions, or use the shortcut:
+
+```bash
+make build-engines
+```
+
+### Runtime fallback when engines are missing
+
+If `.engine` files are absent at startup, `main.py` runs in **stub mode**:
+
+- **Detection**: returns an empty detection list per frame (no crash).
+- **Segmentation**: segmentation stage is skipped entirely.
+- All other components (RL controller, telemetry, conformal predictor, dashboard) operate normally.
+
+This allows CI, tests, and development to run without a GPU or TensorRT installation.
 
 ---
 
