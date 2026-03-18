@@ -312,7 +312,7 @@ def plot_baseline_comparison(results_dir: Path, output_dir: Path) -> None:
     import plotly.graph_objects as go
 
     # Try to load from CSV, fall back to synthetic.
-    csv_path = results_dir / "eval_baselines" / "baselines_comparison.csv"
+    csv_path = results_dir / "baselines" / "baselines_comparison.csv"
     if csv_path.exists():
         rows = _load_csv(csv_path)
         methods = [r["method"] for r in rows]
@@ -409,7 +409,7 @@ def plot_stress_heatmap(results_dir: Path, output_dir: Path) -> None:
     """Stress test performance heatmap."""
     import plotly.graph_objects as go
 
-    csv_path = results_dir / "stress_test" / "stress_summary.csv"
+    csv_path = results_dir / "stress_generalization" / "stress_summary.csv"
     if csv_path.exists():
         rows = _load_csv(csv_path)
         scenarios = [r["scenario"] for r in rows]
