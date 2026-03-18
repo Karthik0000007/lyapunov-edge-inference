@@ -66,6 +66,12 @@ class Preprocessor:
         self._tiling_enabled: bool = tiling_cfg.get("enabled", False)
         self._tile_overlap: float = tiling_cfg.get("overlap", _DEFAULT_OVERLAP)
 
+        if self._tiling_enabled:
+            logger.warning(
+                "Tiling is enabled but NOT YET IMPLEMENTED — will return "
+                "original image. Set tiling.enabled=false in config."
+            )
+
         # Pre-create the CLAHE object (reusable for each frame).
         self._clahe = cv2.createCLAHE(
             clipLimit=self._clip_limit,
@@ -162,10 +168,12 @@ class Preprocessor:
     def _apply_tiling(self, image: np.ndarray) -> np.ndarray:
         """Multi-scale tiling with overlap — return the stitched result.
 
+        NOTE: Tiling is currently a placeholder and returns the original image.
+        Full implementation requires tile-aware detection post-processing which
+        is not yet integrated. Set ``tiling.enabled: false`` in config.
+
         Splits the image into 2x2 overlapping tiles, processes each, and
-        recombines.  For the Phase 2 skeleton, returns the original image
-        (tiling is a pass-through placeholder until the detection stage
-        consumes tiles directly).
+        recombines (NOT YET IMPLEMENTED — returns original image).
         """
         h, w = image.shape[:2]
         if h < 64 or w < 64:
@@ -186,8 +194,9 @@ class Preprocessor:
                 x_end = min(w, x_start + tile_w)
                 tiles.append(image[y_start:y_end, x_start:x_end])
 
-        # Recombine — simple: return original image.
-        # Tile-level inference is handled by the detection stage.
+        # TODO: Implement tile-aware detection and box stitching.
+        # For now, return original image (tiling is disabled by default).
+        logger.debug("Tiling not implemented; returning original image")
         return image
 
     # ── Dynamic ROI cropping ──────────────────────────────────────────────────
