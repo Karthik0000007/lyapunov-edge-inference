@@ -23,6 +23,7 @@ import numpy as np
 import torch
 
 from src.latency_predictor import LatencyPredictor
+from src.torch_compat import torch_load_compat
 
 logger = logging.getLogger(__name__)
 
@@ -296,9 +297,7 @@ class ConformalPredictor:
 
     def load_state(self, path: Path) -> None:
         """Restore conformal state from disk."""
-        data = torch.load(
-            path, map_location="cpu", weights_only=True
-        )
+        data = torch_load_compat(path, map_location="cpu")
         self._alpha = data["alpha"]
         self._quantile = data["quantile"]
         self._calibrated = data["calibrated"]
