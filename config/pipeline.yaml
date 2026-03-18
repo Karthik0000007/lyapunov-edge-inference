@@ -36,6 +36,17 @@ latency:
   constraint_delta: 0.01           # Max acceptable violation rate (1 %)
   window_size: 50                  # Sliding window length for latency statistics
 
+# ── State Normalization Bounds ─────────────────────────────────────────────────
+# These define the min/max ranges for normalizing the 11-dim state vector.
+# Default values tuned for RTX 3050 + NEU-DET dataset.
+# Override for different hardware or datasets.
+normalization:
+  latency_min_ms: 5.0              # Minimum expected latency
+  latency_max_ms: 100.0            # Maximum expected latency
+  detection_count_max: 50          # Maximum expected detections per frame
+  gpu_temp_min_celsius: 30.0       # GPU idle temperature
+  gpu_temp_max_celsius: 100.0      # GPU thermal throttle threshold
+
 telemetry:
   output_dir: traces/              # Parquet output directory
   rotation_frames: 100000          # New file every N frames
