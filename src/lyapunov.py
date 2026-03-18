@@ -30,6 +30,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from src.torch_compat import torch_load_compat
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -401,20 +403,18 @@ class LyapunovManager:
 
         if critic_path.exists():
             self.critic.load_state_dict(
-                torch.load(
+                torch_load_compat(
                     critic_path,
                     map_location=self._device,
-                    weights_only=True,
                 )
             )
             logger.info("Loaded Lyapunov critic from %s", critic_path)
 
         if trans_path.exists():
             self.transition.load_state_dict(
-                torch.load(
+                torch_load_compat(
                     trans_path,
                     map_location=self._device,
-                    weights_only=True,
                 )
             )
             logger.info("Loaded transition model from %s", trans_path)

@@ -1,0 +1,107 @@
+I'll fetch the CI run details and the failing job logs for the workflow run "CI - main (4af345b)" in Karthik0000007/lyapunov-edge-inference so I can identify the error and propose a fix. I'll start by asking GitHub for information about that failing run and its jobs/logs.I inspected commit 4af345bd (the test addition) and searched the codebase. The most likely cause of the CI failure is an incompatible use of torch.load(..., weights_only=True) in several places — that keyword argument is not present in older PyTorch versions and will raise a TypeError in CI if the runner has an older torch wheel. Evidence from the repo:
+
+- Commit 4af345bd added tests/tests/test_checkpoint_roundtrip.py (this commit is the one CI ran).
+- I found torch.load(...) calls with weights_only=True in multiple files that run during tests (these calls will raise if the installed torch doesn't accept weights_only).
+
+Examples from the tree (showing the offending call):
+
+```python name=src/lyapunov.py url=https://github.com/Karthik0000007/lyapunov-edge-inference/blob/6654c02e97a8eb39d37d4ce23276fd23e334beaa/src/lyapunov.py#L303-L314
+        if critic_path.exists():
+            self.critic.load_state_dict(
+                torch.load(critic_path, map_location=self._device, weights_only=True)
+            )
+            logger.info("Loaded Lyapunov critic from %s", critic_path)
+
+        if trans_path.exists():
+            self.transition.load_state_dict(
+                torch.load(trans_path, map_location=self._device, weights_only=True)
+            )
+            logger.info("Loaded transition model from %s", trans_path)
+```
+
+```python name=src/latency_predictor.py url=https://github.com/Karthik0000007/lyapunov-edge-inference/blob/6654c02e97a8eb39d37d4ce23276fd23e334beaa/src/latency_predictor.py#L267-L274
+    def load(self, path: Optional[Path] = None) -> None:
+        """Load model weights from disk."""
+        path = path or self._checkpoint_path
+        state_dict = torch.load(path, map_location=self._device, weights_only=True)
+        self._model.load_state_dict(state_dict)
+        self._model.eval()
+```
+
+```python name=src/agent_lyapunov_ppo.py url=https://github.com/Karthik0000007/lyapunov-edge-inference/blob/6654c02e97a8eb39d37d4ce23276fd23e334beaa/src/agent_lyapunov_ppo.py#L424-L435
+        if actor_path.exists():
+            self._actor.load_state_dict(
+                torch.load(actor_path, map_location=self._device, weights_only=True)
+            )
+            logger.info("Loaded actor from %s", actor_path)
+
+        if critic_path.exists():
+            self._critic.load_state_dict(
+                torch.load(critic_path, map_location=self._device, weights_only=True)
+            )
+            logger.info("Loaded critic from %s", critic_path)
+```
+
+Why this causes CI to fail
+- If the runner's installed PyTorch does not accept weights_only, torch.load(...) will raise something like:
+  TypeError: load() got an unexpected keyword argument 'weights_only'
+- The added tests exercise checkpoint load/save code paths, so the failure will show up immediately when pytest imports/executes those tests.
+
+Two straightforward ways to resolve it
+
+Option A — Make code robust across PyTorch versions (recommended if you want compatibility)
+- Add a small compatibility wrapper that tries torch.load with weights_only and falls back to a call without that kwarg if it's unsupported.
+- Replace direct torch.load(...) calls in the repo with the wrapper.
+
+Example helper (add as e.g. src/torch_compat.py):
+
+```python name=src/torch_compat.py
+from pathlib import Path
+from typing import Any, Optional
+import torch
+
+def torch_load_compat(path: Path | str, map_location: Optional[str | torch.device] = None) -> Any:
+    """Load a file with torch.load, supporting older/newer torch signatures.
+
+    Tries to call torch.load(..., weights_only=True) first (for torch versions
+    that accept it). If that raises a TypeError due to an unexpected kwarg,
+    falls back to calling torch.load(...) without weights_only.
+    """
+    kwargs = {"map_location": map_location}
+    try:
+        # Newer torch may support weights_only; try that first.
+        return torch.load(path, weights_only=True, **{k: v for k, v in kwargs.items() if v is not None})
+    except TypeError:
+        # Fallback for older torch where weights_only isn't accepted.
+        return torch.load(path, **{k: v for k, v in kwargs.items() if v is not None})
+```
+
+Then in each module that does torch.load(..., weights_only=True) replace that call with torch_load_compat(...). Example change for latency_predictor.load:
+
+```python name=src/latency_predictor.py
+# replace:
+# state_dict = torch.load(path, map_location=self._device, weights_only=True)
+# with:
+from .torch_compat import torch_load_compat
+state_dict = torch_load_compat(path, map_location=self._device)
+```
+
+Make the same replacement in src/lyapunov.py and src/agent_lyapunov_ppo.py (and any other files that use weights_only).
+
+Option B — Update CI to use a torch wheel that supports weights_only
+- If the project targets a specific new torch release that supports weights_only (and you prefer to require it), update the CI job to install the appropriate torch version (and CUDA/CPU build matching the runner) before running tests. For reproducibility, pin the required torch version in your requirements or CI install step (e.g., pip install "torch>=2.2.0", if that is the version you intend).
+- This is less work in code but requires ensuring CI can install that exact wheel (sometimes tricky with CUDA/OS targets).
+
+Suggested quick checks to confirm locally / in CI
+- Reproduce the failure locally: pip install -r requirements (or the CI environment used) then run:
+  python -m pytest tests/ -q
+- Check the installed torch version:
+  python -c "import torch, sys; print(torch.__version__, sys.version)"
+- Inspect the CI job log for the exact traceback — look for a TypeError mentioning weights_only or other load-time errors.
+
+Summary
+- Root cause: use of torch.load(..., weights_only=True) which is incompatible with some torch versions used in CI.
+- Fix options: (A) add a small compatibility wrapper and call it everywhere, or (B) pin/update CI to a torch release that supports weights_only.
+- Concrete patch outline above (compatibility wrapper + example replacement) will fix the TypeError across torch versions and should make the tests pass if there are no other unrelated issues.
+
+If you want, apply Option A by adding the helper and replacing the torch.load calls (I provided the exact helper + example replacement), or choose Option B and update the CI configuration to install the required torch version and re-run the failing workflow.

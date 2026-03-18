@@ -35,6 +35,7 @@ from torch.distributions import Categorical
 
 from src.lagrangian import LagrangianDual
 from src.lyapunov import LyapunovManager
+from src.torch_compat import torch_load_compat
 
 logger = logging.getLogger(__name__)
 
@@ -441,18 +442,18 @@ class LyapunovPPOAgent:
 
         if actor_path.exists():
             self._actor.load_state_dict(
-                torch.load(actor_path, map_location=self._device, weights_only=True)
+                torch_load_compat(actor_path, map_location=self._device)
             )
             logger.info("Loaded actor from %s", actor_path)
 
         if critic_path.exists():
             self._critic.load_state_dict(
-                torch.load(critic_path, map_location=self._device, weights_only=True)
+                torch_load_compat(critic_path, map_location=self._device)
             )
             logger.info("Loaded critic from %s", critic_path)
 
         if lag_path.exists():
-            lag_state = torch.load(lag_path, map_location="cpu", weights_only=True)
+            lag_state = torch_load_compat(lag_path, map_location="cpu")
             self._lagrangian.load_state_dict(lag_state)
 
         self._lyapunov.load(d)

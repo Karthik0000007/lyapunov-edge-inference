@@ -27,6 +27,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from src.torch_compat import torch_load_compat
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -260,8 +262,8 @@ class LatencyPredictor:
     def load(self, path: Optional[Path] = None) -> None:
         """Load model weights from disk."""
         path = path or self._checkpoint_path
-        state_dict = torch.load(
-            path, map_location=self._device, weights_only=True
+        state_dict = torch_load_compat(
+            path, map_location=self._device
         )
         self._model.load_state_dict(state_dict)
         self._model.eval()
