@@ -1,0 +1,13 @@
+{
+  "epochs": 150,
+  "bc_epochs": 50,
+  "lr": 0.0003,
+  "rollout_length": 1000,
+  "batch_size": 256,
+  "constraint_threshold": 0.01,
+  "name": "aggressive_exploration",
+  "description": "High exploration with strict latency budget",
+  "latency_budget": 20.0,
+  "entropy_coeff": 0.05,
+  "clip_epsilon": 0.3
+}

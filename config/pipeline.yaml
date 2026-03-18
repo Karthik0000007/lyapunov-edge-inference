@@ -3,7 +3,7 @@
 # All values can be overridden by environment variables (see src/utils.py).
 
 camera:
-  source: 0                        # Device index (int) or file path (str)
+  source: null                        # Device index (int) or file path (str)
   fps: 30
   queue_size: 10                   # Max frames buffered (backpressure / drop policy)
 

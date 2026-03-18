@@ -24,7 +24,7 @@ lagrangian:
 lyapunov:
   enabled: true                    # Toggle Lyapunov safety layer
   critic_lr: 3.0e-4                # Lyapunov critic learning rate
-  drift_tolerance: 0.0             # Max allowed drift (0 = strict ≤ 0 condition)
+  drift_tolerance: 0.05            # Max allowed drift (relaxed to allow productive actions)
 
 conformal:
   enabled: true                    # Toggle adaptive conformal prediction

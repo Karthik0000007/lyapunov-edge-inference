@@ -1,0 +1,17 @@
+{
+  "epochs": 200,
+  "bc_epochs": 50,
+  "lr": 0.0003,
+  "rollout_length": 1000,
+  "batch_size": 256,
+  "constraint_threshold": 0.01,
+  "name": "progressive_budget",
+  "description": "Budget starts strict and relaxes during training",
+  "latency_budget": 22.0,
+  "entropy_coeff": 0.03,
+  "schedule": {
+    "budget_start": 20.0,
+    "budget_end": 35.0,
+    "schedule_epochs": 100
+  }
+}
