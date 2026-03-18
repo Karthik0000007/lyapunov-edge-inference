@@ -40,6 +40,7 @@ from src.detection import DetectionEngine
 from src.drift import DriftMonitor
 from src.monitoring import GPUMonitor, MetricsWindow, TelemetryLogger
 from src.preprocess import Preprocessor
+from src.reward import compute_reward
 from src.segmentation import SegmentationEngine
 from src.state_features import (
     ControllerAction,
@@ -238,27 +239,6 @@ def _annotate_frame(
         )
 
     return vis
-
-
-# ── Reward computation ───────────────────────────────────────────────────────
-
-def _compute_reward(
-    detections: List[Detection],
-    prev_action: int,
-    curr_action: int,
-    cfg: Dict[str, Any],
-) -> float:
-    """Compute per-step reward: quality - churn penalty."""
-    reward_cfg = cfg.get("reward", {})
-    quality_weight = reward_cfg.get("quality_weight", 1.0)
-    churn_penalty = reward_cfg.get("churn_penalty", 0.05)
-
-    quality = 0.0
-    if detections:
-        quality = sum(d.confidence for d in detections) / len(detections)
-
-    churn = abs(curr_action - prev_action)
-    return quality_weight * quality - churn_penalty * churn
 
 
 # ── Online training buffer ───────────────────────────────────────────────────
@@ -497,11 +477,13 @@ def main() -> None:
     logger.info("Pipeline startup complete — entering inference loop")
 
     # ── Pipeline state ──────────────────────────────────────────────────
-    decision_freq = controller_cfg.get("agent", {}).get(
-        "decision_frequency", 5,
-    )
     conf_steps = det_cfg.get("confidence_steps", [0.0, 0.1, 0.2])
     conf_base = det_cfg.get("confidence_base", 0.25)
+    n_max: int = det_cfg.get("max_detections", 100)
+
+    reward_cfg = cfg.get("reward", {})
+    reward_quality_weight: float = reward_cfg.get("quality_weight", 1.0)
+    reward_churn_penalty: float = reward_cfg.get("churn_penalty", 0.05)
 
     prev_action_idx: int = 8  # default no-op
     prev_detections: List[Detection] = []
@@ -644,9 +626,14 @@ def main() -> None:
             constraint_cost = (
                 1.0 if total_latency_ms > latency_budget_ms else 0.0
             )
-            reward = _compute_reward(
-                detections, prev_action_idx,
-                held_action.action_index, cfg,
+            reward = compute_reward(
+                mean_confidence=mean_conf,
+                detection_count=len(detections),
+                curr_action=held_action.action_index,
+                prev_action=prev_action_idx,
+                n_max=n_max,
+                quality_weight=reward_quality_weight,
+                churn_penalty=reward_churn_penalty,
             )
 
             # ── Controller introspection ─────────────────────────────

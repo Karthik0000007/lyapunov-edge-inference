@@ -124,7 +124,7 @@ def _make_default_config() -> dict:
             "max_grad_norm": 0.5, "hidden_size": 64,
         },
         "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01, "constraint_threshold": 0.01},
-        "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.0},
+        "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
         "conformal": {
             "enabled": False, "alpha_target": 0.01, "alpha_lr": 0.005,
             "calibration_size": 5000, "predictor_hidden_size": 32,
