@@ -19,12 +19,15 @@ from __future__ import annotations
 
 import argparse
 import logging
+import random
 import shutil
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +293,12 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         default=Path("runs/detection"),
         help="Directory for training outputs.",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
     return parser.parse_args(argv)
 
 
@@ -300,6 +309,12 @@ def main(argv: List[str] | None = None) -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
     args = parse_args(argv)
+
+    # Set random seeds for reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    logger.info("Using random seed: %d", args.seed)
+
     train(
         data_path=args.data,
         epochs=args.epochs,

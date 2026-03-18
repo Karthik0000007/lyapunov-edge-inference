@@ -342,6 +342,12 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         default=Path("runs/segmentation"),
         help="Directory for training logs.",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
     return parser.parse_args(argv)
 
 
@@ -352,6 +358,14 @@ def main(argv: List[str] | None = None) -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
     args = parse_args(argv)
+
+    # Set random seeds for reproducibility
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    logger.info("Using random seed: %d", args.seed)
+
     train(
         data_path=args.data,
         epochs=args.epochs,
