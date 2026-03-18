@@ -54,7 +54,7 @@ def _default_agent_config(checkpoint_dir: str) -> Dict[str, Any]:
             "entropy_coeff": 0.01,
             "value_loss_coeff": 0.5,
             "max_grad_norm": 0.5,
-            "hidden_size": 128,
+            "hidden_size": 64,
         },
         "lagrangian": {
             "lambda_init": 0.1,
@@ -107,12 +107,14 @@ def evaluate_seed(
     seed: int,
     num_frames: int,
     device: torch.device,
+    latency_noise_std: float = 2.0,
 ) -> Dict[str, Any]:
     """Run one evaluation seed and return metrics dict."""
     env = LatencyEnv(
         trace_path=trace_path,
         max_steps=num_frames,
         latency_budget_ms=_LATENCY_BUDGET_MS,
+        latency_noise_std=latency_noise_std,
     )
     obs, _ = env.reset(seed=seed)
 
@@ -190,8 +192,10 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         default="data/telemetry.parquet",
         help="Path to Parquet trace file.",
     )
-    parser.add_argument("--seeds", type=int, default=5, help="Number of evaluation seeds.")
+    parser.add_argument("--seeds", type=int, default=10, help="Number of evaluation seeds.")
     parser.add_argument("--frames", type=int, default=10000, help="Frames per seed run.")
+    parser.add_argument("--latency-noise-std", dest="latency_noise_std", type=float, default=2.0,
+                        help="Stochastic noise std for latency (ms).")
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
         "--output-dir",
@@ -229,6 +233,7 @@ def main(argv: List[str] | None = None) -> None:
             seed=seed * 42,
             num_frames=args.frames,
             device=device,
+            latency_noise_std=args.latency_noise_std,
         )
         all_metrics.append(metrics)
         logger.info(

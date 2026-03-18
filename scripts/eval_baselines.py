@@ -115,12 +115,14 @@ def evaluate_method(
     trace_path: str,
     seed: int,
     num_frames: int,
+    latency_noise_std: float = 2.0,
 ) -> Dict[str, Any]:
     """Evaluate a single controller for one seed."""
     env = LatencyEnv(
         trace_path=trace_path,
         max_steps=num_frames,
         latency_budget_ms=_LATENCY_BUDGET_MS,
+        latency_noise_std=latency_noise_std,
     )
     obs, _ = env.reset(seed=seed)
 
@@ -206,8 +208,10 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         "--checkpoint", type=Path, default=Path("checkpoints/ppo_lyapunov"),
         help="RL agent checkpoint directory.",
     )
-    parser.add_argument("--seeds", type=int, default=5, help="Number of evaluation seeds.")
+    parser.add_argument("--seeds", type=int, default=10, help="Number of evaluation seeds.")
     parser.add_argument("--frames", type=int, default=10000, help="Frames per seed run.")
+    parser.add_argument("--latency-noise-std", dest="latency_noise_std", type=float, default=2.0,
+                        help="Stochastic noise std for latency (ms).")
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
         "--output-dir", type=Path, default=Path("results/eval_baselines"),
@@ -241,7 +245,9 @@ def main(argv: List[str] | None = None) -> None:
             logger.info("  %s — seed %d/%d", method_name, seed_idx + 1, args.seeds)
             if hasattr(method, "reset"):
                 method.reset()
-            metrics = evaluate_method(method, args.traces, seed, args.frames)
+            metrics = evaluate_method(
+                method, args.traces, seed, args.frames, args.latency_noise_std
+            )
             metrics["method"] = method_name
             metrics["seed"] = seed
             all_results[method_name].append(metrics)
