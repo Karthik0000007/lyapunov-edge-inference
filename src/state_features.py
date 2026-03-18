@@ -21,20 +21,22 @@ import torch
 
 # ── Normalization constants ───────────────────────────────────────────────────
 # Fixed ranges used by ControllerState.to_tensor() to map each feature to [0, 1].
+# These defaults are tuned for RTX 3050 + NEU-DET dataset. For other hardware
+# or datasets, configure via config/pipeline.yaml → normalization section.
 
-_LATENCY_MIN_MS: float = 5.0
-_LATENCY_MAX_MS: float = 100.0
+_LATENCY_MIN_MS: float = 5.0       # Minimum expected frame latency (ms)
+_LATENCY_MAX_MS: float = 100.0     # Maximum expected frame latency (ms)
 
-_DETECTION_COUNT_MIN: float = 0.0
-_DETECTION_COUNT_MAX: float = 50.0
+_DETECTION_COUNT_MIN: float = 0.0   # Minimum detections (always 0)
+_DETECTION_COUNT_MAX: float = 50.0  # Max expected detections per frame (dataset-specific)
 
-_GPU_UTIL_MIN: float = 0.0
-_GPU_UTIL_MAX: float = 100.0
+_GPU_UTIL_MIN: float = 0.0          # GPU utilization floor (%)
+_GPU_UTIL_MAX: float = 100.0        # GPU utilization ceiling (%)
 
-_GPU_TEMP_MIN: float = 30.0
-_GPU_TEMP_MAX: float = 100.0
+_GPU_TEMP_MIN: float = 30.0         # Idle GPU temperature (°C, hardware-specific)
+_GPU_TEMP_MAX: float = 100.0        # Thermal throttle threshold (°C, hardware-specific)
 
-_NUM_ACTIONS: int = 18
+_NUM_ACTIONS: int = 18              # 3 resolutions × 3 thresholds × 2 segmentation
 
 
 def _clamp01(v: float) -> float:
