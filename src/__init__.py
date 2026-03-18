@@ -59,45 +59,48 @@ from src.utils import (
     verify_checkpoint,
 )
 
+import logging as _logging
+_logger = _logging.getLogger(__name__)
+
 # Controller & agent — lazy imports to avoid hard GPU dependency at package level.
 # These are re-exported so that ``from src import AdaptiveController`` works when
 # the runtime environment has the required backends installed.
 try:
     from src.controller import AdaptiveController
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("AdaptiveController not available: %s", e)
 
 try:
     from src.agent_lyapunov_ppo import LyapunovPPOAgent
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("LyapunovPPOAgent not available: %s", e)
 
 # Inference engines — guarded because they require TensorRT + PyCUDA.
 try:
     from src.detection import DetectionEngine
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("DetectionEngine not available (TensorRT required): %s", e)
 
 try:
     from src.segmentation import SegmentationEngine
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("SegmentationEngine not available (TensorRT required): %s", e)
 
 # Safety layers
 try:
     from src.conformal import ConformalPredictor
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("ConformalPredictor not available: %s", e)
 
 try:
     from src.lyapunov import LyapunovCritic, LyapunovManager, TransitionModel
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("Lyapunov components not available: %s", e)
 
 try:
     from src.lagrangian import LagrangianDual
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("LagrangianDual not available: %s", e)
 
 # Baselines
 try:
@@ -109,45 +112,45 @@ try:
         PIDController,
         RuleBasedController,
     )
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("Baselines not available: %s", e)
 
 # Monitoring & telemetry
 try:
     from src.monitoring import GPUMonitor, MetricsWindow, TelemetryLogger
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("Monitoring components not available: %s", e)
 
 try:
     from src.drift import DriftMonitor
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("DriftMonitor not available: %s", e)
 
 try:
     from src.telemetry import FrameTimer
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("FrameTimer not available: %s", e)
 
 # Infrastructure
 try:
     from src.camera import CameraCapture
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("CameraCapture not available: %s", e)
 
 try:
     from src.preprocess import Preprocessor
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("Preprocessor not available: %s", e)
 
 try:
     from src.env import LatencyEnv
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("LatencyEnv not available: %s", e)
 
 try:
     from src.latency_predictor import LatencyPredictor
-except ImportError:
-    pass
+except ImportError as e:
+    _logger.debug("LatencyPredictor not available: %s", e)
 
 __all__ = [
     # ── Domain model ──────────────────────────────────────────────────────────
