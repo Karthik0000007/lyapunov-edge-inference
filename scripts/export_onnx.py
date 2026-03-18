@@ -52,7 +52,7 @@ def _export_detection(checkpoint: Path, output: Path, imgsz: int) -> Path:
     # Move to requested output path if different.
     if export_path.resolve() != output.resolve():
         output.parent.mkdir(parents=True, exist_ok=True)
-        export_path.rename(output)
+        export_path.replace(output)
         logger.info("Moved ONNX file to %s", output)
     else:
         logger.info("ONNX file saved at %s", output)
@@ -72,7 +72,7 @@ def _export_segmentation(checkpoint: Path, output: Path) -> Path:
     from train_segmentation import MobileNetV2UNet
 
     # Load checkpoint.
-    ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    ckpt = torch.load(checkpoint, map_location="cpu")
     num_classes = ckpt.get("num_classes", 1)
     resolution = ckpt.get("resolution", 256)
 

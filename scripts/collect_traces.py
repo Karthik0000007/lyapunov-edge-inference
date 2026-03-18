@@ -36,7 +36,18 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.baselines import RuleBasedController
-from src.state_features import ControllerAction, ControllerState
+from src.state_features import (
+    ControllerAction,
+    ControllerState,
+    _clamp01,
+    _normalize,
+    _DETECTION_COUNT_MAX,
+    _GPU_TEMP_MIN,
+    _GPU_TEMP_MAX,
+    _GPU_UTIL_MAX,
+    _LATENCY_MIN_MS,
+    _LATENCY_MAX_MS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,23 +56,6 @@ logger = logging.getLogger(__name__)
 _STATE_DIM: int = 11
 _NUM_ACTIONS: int = 18
 _LATENCY_BUDGET_MS: float = 50.0
-
-_LATENCY_MIN: float = 5.0
-_LATENCY_MAX: float = 100.0
-_DET_COUNT_MAX: float = 50.0
-_GPU_UTIL_MAX: float = 100.0
-_GPU_TEMP_MIN: float = 30.0
-_GPU_TEMP_MAX: float = 100.0
-
-
-def _clamp01(v: float) -> float:
-    return max(0.0, min(1.0, v))
-
-
-def _normalize(v: float, lo: float, hi: float) -> float:
-    if hi == lo:
-        return 0.0
-    return _clamp01((v - lo) / (hi - lo))
 
 
 # ── Synthetic trace collector ────────────────────────────────────────────────
@@ -106,10 +100,10 @@ def collect_synthetic(
         # obs layout: [last_lat, mean_lat, p99_lat, det_count, mean_conf,
         #              area_ratio, res_idx, thr_idx, seg, gpu_util, gpu_temp]
         # Denormalize for ControllerState.
-        last_lat = obs[0] * (_LATENCY_MAX - _LATENCY_MIN) + _LATENCY_MIN
-        mean_lat = obs[1] * (_LATENCY_MAX - _LATENCY_MIN) + _LATENCY_MIN
-        p99_lat = obs[2] * (_LATENCY_MAX - _LATENCY_MIN) + _LATENCY_MIN
-        det_count = int(obs[3] * _DET_COUNT_MAX)
+        last_lat = obs[0] * (_LATENCY_MAX_MS - _LATENCY_MIN_MS) + _LATENCY_MIN_MS
+        mean_lat = obs[1] * (_LATENCY_MAX_MS - _LATENCY_MIN_MS) + _LATENCY_MIN_MS
+        p99_lat = obs[2] * (_LATENCY_MAX_MS - _LATENCY_MIN_MS) + _LATENCY_MIN_MS
+        det_count = int(obs[3] * _DETECTION_COUNT_MAX)
         mean_conf = float(obs[4])
         area_ratio = float(obs[5])
         gpu_util = float(obs[9] * _GPU_UTIL_MAX)
