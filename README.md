@@ -139,40 +139,64 @@ lyapunov-edge-inference/
 ├── config/
 │   ├── pipeline.yaml        # Pipeline parameters
 │   ├── controller.yaml      # RL hyperparameters
-│   └── deployment.yaml      # Production overrides
+│   ├── deployment.yaml      # Production overrides
+│   └── exploration/         # Configuration exploration experiments
 ├── src/
-│   ├── camera.py            # Frame acquisition
-│   ├── preprocess.py        # CLAHE, tiling, edge fusion, ROI crop
-│   ├── detection.py         # YOLOv8-Nano TensorRT wrapper
-│   ├── segmentation.py      # MobileNetV2-UNet TensorRT wrapper
-│   ├── controller.py        # Three-layer controller orchestrator
+│   ├── __init__.py
 │   ├── agent_lyapunov_ppo.py
-│   ├── lyapunov.py          # Lyapunov critic + action masking
-│   ├── lagrangian.py        # Lagrangian dual variable (baseline)
-│   ├── conformal.py         # Conformal prediction + ACI
-│   ├── latency_predictor.py
 │   ├── baselines.py         # Rule-based, PID, fixed-config controllers
+│   ├── camera.py            # Frame acquisition
+│   ├── conformal.py         # Conformal prediction + ACI
+│   ├── controller.py        # Three-layer controller orchestrator
+│   ├── detection.py         # YOLOv8-Nano TensorRT wrapper
+│   ├── drift.py             # KS-test + CUSUM drift detection
 │   ├── env.py               # Gym environment (trace replay)
-│   ├── monitoring.py        # Telemetry + Parquet logging
-│   └── drift.py             # KS-test + CUSUM drift detection
+│   ├── lagrangian.py        # Lagrangian dual variable (baseline)
+│   ├── latency_predictor.py
+│   ├── lyapunov.py          # Lyapunov critic + action masking
+│   ├── monitoring.py        # Telemetry monitoring and metrics
+│   ├── preprocess.py        # CLAHE, tiling, edge fusion, ROI crop
+│   ├── reward.py            # RL reward function computation
+│   ├── segmentation.py      # MobileNetV2-UNet TensorRT wrapper
+│   ├── state_features.py    # State feature extraction and normalization
+│   ├── telemetry.py         # Parquet telemetry logging
+│   ├── torch_compat.py      # PyTorch compatibility utilities
+│   ├── trt_common.py        # TensorRT common utilities
+│   └── utils.py             # General utility functions
 ├── scripts/
 │   ├── collect_traces.py
-│   ├── train_detection.py / train_segmentation.py
-│   ├── export_onnx.py / build_tensorrt.py
-│   ├── train_ppo.py / train_lyapunov.py
+│   ├── train_detection.py
+│   ├── train_segmentation.py
+│   ├── export_onnx.py
+│   ├── build_tensorrt.py
+│   ├── train_ppo.py
+│   ├── train_lyapunov.py
 │   ├── calibrate_cp.py
-│   ├── eval_agent.py / eval_baselines.py
-│   ├── stress_test.py / ablation.py
-│   └── plot_results.py
+│   ├── eval_agent.py
+│   ├── eval_baselines.py
+│   ├── stress_test.py
+│   ├── ablation.py
+│   ├── plot_results.py
+│   ├── analyze_training.py   # Training diagnostics and analysis
+│   ├── debug_violations.py   # Constraint violation debugging
+│   └── explore_config.py     # Configuration space exploration
 ├── app/
 │   └── dashboard.py         # Streamlit dashboard
 ├── models/                  # TensorRT engines (detection 320/480/640, segmentation)
 ├── checkpoints/             # RL weights + conformal state
 ├── traces/                  # Logged telemetry (Parquet)
 ├── data/                    # NEU-DET + KolektorSDD2 + MVTec AD subset + calibration images
+├── dataset/                 # Processed datasets for training
+├── docs/                    # Technical documentation
+│   ├── ENGINE_BUILD.md      # TensorRT engine build instructions
+│   └── CONVERGENCE_GUIDE.md # RL training convergence guide
+├── paper/                   # Research paper materials
+├── research_paper_results/  # Experiment results for papers
 ├── results/                 # Figures, tables, experiment logs
+├── runs/                    # Training run logs (TensorBoard)
 ├── tests/                   # Unit + integration tests
 └── demo/                    # Demo recording script + video
+    └── record_demo.py
 ```
 
 ---

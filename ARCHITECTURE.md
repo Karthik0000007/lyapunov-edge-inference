@@ -1238,7 +1238,8 @@ lyapunov-edge-inference/
 ├── config/
 │   ├── pipeline.yaml            # Pipeline parameters (resolutions, thresholds, budgets)
 │   ├── controller.yaml          # RL hyperparameters (γ, α, η, k)
-│   └── deployment.yaml          # Production overrides
+│   ├── deployment.yaml          # Production overrides
+│   └── exploration/             # Configuration exploration experiments
 ├── src/
 │   ├── __init__.py
 │   ├── camera.py                # Frame acquisition (producer thread)
@@ -1257,6 +1258,9 @@ lyapunov-edge-inference/
 │   ├── drift.py                 # KS-test + CUSUM drift detectors
 │   ├── state_features.py        # State vector extraction + normalization
 │   ├── telemetry.py             # Per-stage timing instrumentation
+│   ├── reward.py                # RL reward function computation
+│   ├── trt_common.py            # TensorRT common utilities
+│   ├── torch_compat.py          # PyTorch compatibility utilities
 │   └── utils.py                 # Shared utilities (config loading, device setup)
 ├── scripts/
 │   ├── collect_traces.py        # Run pipeline with ε-greedy logging
@@ -1271,7 +1275,10 @@ lyapunov-edge-inference/
 │   ├── eval_baselines.py        # Evaluate all baselines
 │   ├── stress_test.py           # Automated stress test suite
 │   ├── ablation.py              # Run full ablation study
-│   └── plot_results.py          # Generate all paper figures
+│   ├── plot_results.py          # Generate all paper figures
+│   ├── analyze_training.py      # Training diagnostics and analysis
+│   ├── debug_violations.py      # Constraint violation debugging
+│   └── explore_config.py        # Configuration space exploration
 ├── app/
 │   └── dashboard.py             # Streamlit dashboard entry point
 ├── models/
@@ -1289,10 +1296,16 @@ lyapunov-edge-inference/
 │   ├── KolektorSDD2/            # KolektorSDD2 dataset (segmentation training, pixel masks)
 │   ├── mvtec_ad/                # MVTec AD subset — metal/PCB/cable only (generalization/ablation only)
 │   └── calibration/             # Calibration images for conformal prediction
+├── dataset/                     # Processed datasets for training
+├── docs/                        # Technical documentation
+│   ├── ENGINE_BUILD.md          # TensorRT engine build instructions
+│   └── CONVERGENCE_GUIDE.md     # RL training convergence guide
 ├── results/
 │   ├── figures/                 # Generated plots
 │   ├── tables/                  # Generated tables (CSV/LaTeX)
 │   └── logs/                    # Experiment logs
+├── research_paper_results/      # Experiment results for papers
+├── runs/                        # Training run logs (TensorBoard)
 ├── paper/
 │   ├── main.tex                 # Paper draft
 │   ├── figures/                 # Paper-ready figures
