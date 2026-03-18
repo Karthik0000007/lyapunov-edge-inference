@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Type checking
+.mypy_cache/
+
+# Datasets and large data (entire directories)
+dataset/
+data/
+traces/
+*.parquet
+*.fallback_override
+
+# Model artifacts and checkpoints (entire directories)
+checkpoints/
+models/
+runs/
+results/
+
+# Pre-trained weights (large binary files)
+*.pt
+*.pth
+*.engine
+*.plan
+*.onnx
+
+# Demo outputs
+demo/demo_video.mp4
+demo_video.txt
+video_demo.txt
+
+# TensorRT artifacts
+*.engine
+*.plan
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Development
+missing_components.txt
+what_next.txt

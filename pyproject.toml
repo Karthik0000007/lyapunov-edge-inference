@@ -1,0 +1,23 @@
+[project]
+name = "lyapunov-edge-inference"
+version = "1.0.0"
+description = "Lyapunov-constrained RL for latency-bounded edge inference"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_configs = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 60
