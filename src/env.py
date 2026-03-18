@@ -23,6 +23,20 @@ import numpy as np
 import pandas as pd
 from gymnasium import spaces
 
+from src.reward import action_l1_distance, compute_reward as _shared_compute_reward
+from src.state_features import (
+    _clamp01,
+    _normalize,
+    _DETECTION_COUNT_MIN,
+    _DETECTION_COUNT_MAX,
+    _GPU_TEMP_MIN,
+    _GPU_TEMP_MAX,
+    _GPU_UTIL_MIN,
+    _GPU_UTIL_MAX,
+    _LATENCY_MIN_MS,
+    _LATENCY_MAX_MS,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -36,24 +50,6 @@ _LATENCY_BUDGET_MS: float = 50.0
 
 # Resolution map: index → pixel width.
 _RESOLUTION_MAP: Dict[int, int] = {0: 320, 1: 480, 2: 640}
-
-# Normalization ranges (matching state_features.py).
-_LATENCY_MIN: float = 5.0
-_LATENCY_MAX: float = 100.0
-_DET_COUNT_MAX: float = 50.0
-_GPU_UTIL_MAX: float = 100.0
-_GPU_TEMP_MIN: float = 30.0
-_GPU_TEMP_MAX: float = 100.0
-
-
-def _clamp01(v: float) -> float:
-    return max(0.0, min(1.0, v))
-
-
-def _normalize(v: float, lo: float, hi: float) -> float:
-    if hi == lo:
-        return 0.0
-    return _clamp01((v - lo) / (hi - lo))
 
 
 # ── LatencyEnv ───────────────────────────────────────────────────────────────
@@ -237,12 +233,24 @@ class LatencyEnv(gym.Env):
             self._latency_window = self._latency_window[-self._window_size:]
 
         # ── Reward: Q_t - 0.05 * ||a_t - a_{t-1}||_1 ────────────────
-        quality = self._compute_quality(trace_idx)
+        row = self._trace.iloc[trace_idx]
+        det_count = int(row.get("detection_count", 0))
+        mean_conf = float(row.get("mean_confidence", 0.0))
+
+        reward = _shared_compute_reward(
+            mean_confidence=mean_conf,
+            detection_count=det_count,
+            curr_action=action,
+            prev_action=self._prev_action,
+            n_max=100,
+            quality_weight=self._quality_weight,
+            churn_penalty=self._churn_penalty,
+        )
+        quality = mean_conf * min(det_count, 100) / 100
         if self._prev_action >= 0:
-            churn = self._action_l1_distance(action, self._prev_action)
+            churn = action_l1_distance(action, self._prev_action)
         else:
             churn = 0.0
-        reward = self._quality_weight * quality - self._churn_penalty * churn
 
         # ── Constraint cost: 1[ℓ > budget] ──────────────────────────
         constraint_cost = 1.0 if latency > self._budget else 0.0
@@ -292,16 +300,16 @@ class LatencyEnv(gym.Env):
         gpu_temp = float(row.get("gpu_temp_celsius", 55.0))
 
         obs = np.array([
-            _normalize(last_lat, _LATENCY_MIN, _LATENCY_MAX),
-            _normalize(mean_lat, _LATENCY_MIN, _LATENCY_MAX),
-            _normalize(p99_lat, _LATENCY_MIN, _LATENCY_MAX),
-            _normalize(det_count, 0.0, _DET_COUNT_MAX),
+            _normalize(last_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+            _normalize(mean_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+            _normalize(p99_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+            _normalize(det_count, _DETECTION_COUNT_MIN, _DETECTION_COUNT_MAX),
             _clamp01(mean_conf),
             _clamp01(area_ratio),
             _clamp01(self._resolution_index / 2.0),
             _clamp01(self._threshold_index / 2.0),
             float(self._segmentation_enabled),
-            _normalize(gpu_util, 0.0, _GPU_UTIL_MAX),
+            _normalize(gpu_util, _GPU_UTIL_MIN, _GPU_UTIL_MAX),
             _normalize(gpu_temp, _GPU_TEMP_MIN, _GPU_TEMP_MAX),
         ], dtype=np.float32)
 
@@ -328,50 +336,6 @@ class LatencyEnv(gym.Env):
 
         # Threshold doesn't significantly affect latency.
         return base_latency * res_scale * seg_scale
-
-    # ── Quality computation ──────────────────────────────────────────────
-
-    def _compute_quality(self, trace_idx: int) -> float:
-        """Proxy quality metric Q_t ∈ [0, 1] based on config and detections.
-
-        Quality increases with resolution and lower threshold (more
-        detections), and with segmentation enabled.
-        """
-        row = self._trace.iloc[trace_idx]
-        det_count = float(row.get("detection_count", 0))
-        mean_conf = float(row.get("mean_confidence", 0.0))
-
-        # Resolution quality component: higher res → better quality.
-        res_quality = self._resolution_index / 2.0
-
-        # Threshold quality: lower threshold → better precision.
-        thr_quality = 1.0 - self._threshold_index / 2.0
-
-        # Segmentation bonus.
-        seg_quality = 0.1 if self._segmentation_enabled else 0.0
-
-        # Detection confidence contribution.
-        conf_quality = mean_conf * 0.3
-
-        quality = 0.3 * res_quality + 0.2 * thr_quality + seg_quality + conf_quality
-        return _clamp01(quality)
-
-    # ── Action distance ──────────────────────────────────────────────────
-
-    @staticmethod
-    def _action_l1_distance(a1: int, a2: int) -> float:
-        """Compute L1 distance between two factored actions.
-
-        Each action encodes (res_delta, thr_delta, seg) so the L1 distance
-        is the sum of absolute differences of the factored components.
-        """
-        seg1, seg2 = a1 % 2, a2 % 2
-        thr1, thr2 = (a1 // 2) % 3 - 1, (a2 // 2) % 3 - 1
-        res1, res2 = (a1 // 6) % 3 - 1, (a2 // 6) % 3 - 1
-
-        return float(
-            abs(res1 - res2) + abs(thr1 - thr2) + abs(seg1 - seg2)
-        )
 
     # ── Trace loading ────────────────────────────────────────────────────
 

@@ -47,14 +47,19 @@ _NUM_ACTIONS: int = 18
 # ── Actor network ───────────────────────────────────────────────────────────
 
 class _Actor(nn.Module):
-    """Policy network π_θ(a|s): 11 → 64 → 64 → 18 → softmax."""
+    """Policy network π_θ(a|s): 11 → hidden → hidden → hidden → 18 → softmax."""
 
     def __init__(self, hidden_size: int = 64) -> None:
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(_STATE_DIM, hidden_size),
+            nn.LayerNorm(hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.LayerNorm(hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, _NUM_ACTIONS),
         )

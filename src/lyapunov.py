@@ -401,13 +401,21 @@ class LyapunovManager:
 
         if critic_path.exists():
             self.critic.load_state_dict(
-                torch.load(critic_path, map_location=self._device, weights_only=True)
+                torch.load(
+                    critic_path,
+                    map_location=self._device,
+                    weights_only=True,
+                )
             )
             logger.info("Loaded Lyapunov critic from %s", critic_path)
 
         if trans_path.exists():
             self.transition.load_state_dict(
-                torch.load(trans_path, map_location=self._device, weights_only=True)
+                torch.load(
+                    trans_path,
+                    map_location=self._device,
+                    weights_only=True,
+                )
             )
             logger.info("Loaded transition model from %s", trans_path)
 
