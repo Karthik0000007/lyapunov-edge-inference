@@ -21,7 +21,7 @@ import numpy as np
 try:
     import pycuda.autoinit  # noqa: F401
     import pycuda.driver as cuda
-except ImportError:
+except (ImportError, FileNotFoundError):
     cuda = None  # type: ignore[assignment]
 
 try:
@@ -30,6 +30,7 @@ except ImportError:
     trt = None  # type: ignore[assignment]
 
 from src.state_features import Detection
+from src.trt_common import TRTLogger as _TRTLogger
 
 logger = logging.getLogger(__name__)
 
@@ -37,28 +38,6 @@ logger = logging.getLogger(__name__)
 
 _SEG_RESOLUTION: int = 256
 _SEG_INPUT_CHANNELS: int = 3
-
-
-# ── TensorRT Logger ─────────────────────────────────────────────────────────
-
-class _TRTLogger(trt.ILogger if trt else object):  # type: ignore[misc]
-    """Bridge TensorRT log messages into Python logging."""
-
-    _LEVEL_MAP = {
-        trt.Logger.INTERNAL_ERROR: logging.CRITICAL,
-        trt.Logger.ERROR: logging.ERROR,
-        trt.Logger.WARNING: logging.WARNING,
-        trt.Logger.INFO: logging.INFO,
-        trt.Logger.VERBOSE: logging.DEBUG,
-    } if trt else {}
-
-    def __init__(self) -> None:
-        if trt:
-            super().__init__()
-
-    def log(self, severity: Any, msg: str) -> None:  # noqa: A003
-        py_level = self._LEVEL_MAP.get(severity, logging.DEBUG)
-        logger.log(py_level, "[TensorRT] %s", msg)
 
 
 # ── SegmentationEngine ───────────────────────────────────────────────────────

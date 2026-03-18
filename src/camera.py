@@ -43,7 +43,7 @@ def _try_pinned_alloc(height: int, width: int, channels: int = 3) -> Optional[np
     try:
         host_mem = cv2.cuda.HostMem(height, width, cv2.CV_8UC(channels), cv2.cuda.HostMem_PAGE_LOCKED)
         return host_mem.createMatHeader()
-    except (cv2.error, AttributeError):
+    except (cv2.error, AttributeError, SystemError):
         return None
 
 
