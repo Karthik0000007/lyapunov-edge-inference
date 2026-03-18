@@ -71,3 +71,10 @@ Thumbs.db
 # Development
 missing_components.txt
 what_next.txt
+what_happend.txt
+project_audit.txt
+error_in_Commit*.txt
+
+# Generated figures and artifacts
+paper/figures/
+research_paper_results/
