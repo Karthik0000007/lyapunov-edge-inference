@@ -110,6 +110,7 @@ class LatencyEnv(gym.Env):
         latency_budget_ms: float = 50.0,
         quality_weight: float = 1.0,
         churn_penalty: float = 0.05,
+        latency_noise_std: float = 2.0,
         seed: Optional[int] = None,
     ) -> None:
         super().__init__()
@@ -125,6 +126,7 @@ class LatencyEnv(gym.Env):
         self._budget: float = latency_budget_ms
         self._quality_weight: float = quality_weight
         self._churn_penalty: float = churn_penalty
+        self._latency_noise_std: float = latency_noise_std
 
         # ── Load trace ───────────────────────────────────────────────
         self._trace_path = Path(trace_path)
@@ -147,11 +149,12 @@ class LatencyEnv(gym.Env):
 
         logger.info(
             "LatencyEnv ready — trace=%s  rows=%d  max_steps=%d  "
-            "budget=%.1f ms",
+            "budget=%.1f ms  noise_std=%.2f",
             self._trace_path,
             self._trace_len,
             self._max_steps,
             self._budget,
+            self._latency_noise_std,
         )
 
     # ── Gymnasium API ────────────────────────────────────────────────────
@@ -226,6 +229,11 @@ class LatencyEnv(gym.Env):
         trace_idx = (self._offset + self._step_count) % self._trace_len
         base_latency = self._lookup_latency(trace_idx)
         latency = self._interpolate_latency(base_latency)
+
+        # Add stochastic noise for evaluation diversity across seeds.
+        if self._latency_noise_std > 0.0:
+            noise = self._np_random.normal(0.0, self._latency_noise_std)
+            latency = max(1.0, latency + noise)  # Clamp to positive
 
         # Update latency window.
         self._latency_window.append(latency)
