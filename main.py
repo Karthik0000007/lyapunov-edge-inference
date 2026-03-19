@@ -113,6 +113,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable Streamlit dashboard subprocess.",
     )
+    parser.add_argument(
+        "--record",
+        type=str,
+        default=None,
+        help="Path to save recorded video (e.g., demo/output.mp4). If not specified, no recording.",
+    )
+    parser.add_argument(
+        "--slowdown",
+        type=float,
+        default=1.0,
+        help="Slowdown factor for recorded video (e.g., 2.0 = half speed, 3.0 = third speed).",
+    )
     return parser.parse_args()
 
 
@@ -209,12 +221,12 @@ def _annotate_frame(
         y1 = int(det.bbox[1] * h)
         x2 = int(det.bbox[2] * w)
         y2 = int(det.bbox[3] * h)
-        colour = (0, 255, 0) if det.confidence >= 0.5 else (0, 165, 255)
+        colour = (0, 255, 0) if det.confidence >= 0.3 else (0, 165, 255)
         cv2.rectangle(vis, (x1, y1), (x2, y2), colour, 2)
         label = f"{det.class_name} {det.confidence:.2f}"
         cv2.putText(
-            vis, label, (x1, max(y1 - 6, 12)),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.45, colour, 1,
+            vis, label, (x1, max(y1 - 5, 10)),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.35, colour, 1,
         )
 
     # Overlay segmentation masks with transparency.
@@ -234,9 +246,27 @@ def _annotate_frame(
     ]
     for i, line in enumerate(hud_lines):
         cv2.putText(
-            vis, line, (8, 20 + i * 18),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1,
+            vis, line, (8, 18 + i * 15),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1,
         )
+
+    # Status overlay (bottom-right): green GOOD when no confident detection, red DEFECT when any detection >= 0.3
+    is_defect = any(det.confidence >= 0.3 for det in detections)
+    status_text = "DEFECT" if is_defect else "GOOD"
+    status_color = (0, 0, 255) if is_defect else (0, 200, 0)
+
+    status_label = f"Status: {status_text}"
+    (tw, th), _ = cv2.getTextSize(status_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+    pad = 8
+    x1 = w - tw - pad - 10
+    y1 = h - th - pad - 10  # Bottom instead of top
+    x2 = w - 10
+    y2 = h - 10  # Bottom instead of top
+    cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 0, 0), -1)
+    cv2.putText(
+        vis, status_label, (x1 + 4, y2 - 4),  # Adjusted y position
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, status_color, 1,
+    )
 
     return vis
 
@@ -416,6 +446,18 @@ def main() -> None:
         fps=cam_cfg.get("fps", 30),
         queue_size=cam_cfg.get("queue_size", 10),
     )
+
+    # ── 7b. Video recording setup ───────────────────────────────────────
+    video_writer: Optional[cv2.VideoWriter] = None
+    record_path: Optional[Path] = None
+    slowdown_factor: float = args.slowdown if hasattr(args, 'slowdown') else 1.0
+    if args.record:
+        record_path = Path(args.record)
+        record_path.parent.mkdir(parents=True, exist_ok=True)
+        if slowdown_factor > 1.0:
+            logger.info("Video recording will be saved to %s (slowed down %.1fx)", record_path, slowdown_factor)
+        else:
+            logger.info("Video recording will be saved to %s", record_path)
 
     # ── 8. Telemetry logger ─────────────────────────────────────────────
     tel_cfg = cfg.get("telemetry", {})
@@ -602,6 +644,25 @@ def main() -> None:
 
             frame.timestamp_completed = float(time.perf_counter_ns())
 
+            # ── Video recording ──────────────────────────────────────
+            if record_path is not None:
+                # Lazy initialization of VideoWriter on first frame
+                if video_writer is None:
+                    h, w = annotated.shape[:2]
+                    input_fps = cam_cfg.get("fps", 30)
+                    # Reduce output FPS to slow down video
+                    output_fps = max(10, int(input_fps / slowdown_factor))
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    video_writer = cv2.VideoWriter(
+                        str(record_path), fourcc, output_fps, (w, h)
+                    )
+                    logger.info("Video writer initialized: %dx%d @ %d fps (%.1fx slowdown)",
+                               w, h, output_fps, slowdown_factor)
+
+                # Write annotated frame
+                if video_writer is not None and video_writer.isOpened():
+                    video_writer.write(annotated)
+
             # ── Latency tracking ─────────────────────────────────────
             total_latency_ms = timer.total_ms
             last_latency_ms = total_latency_ms
@@ -724,6 +785,11 @@ def main() -> None:
         #  GRACEFUL SHUTDOWN
         # ═══════════════════════════════════════════════════════════════
         logger.info("Shutdown sequence started")
+
+        # 0. Release video writer if recording was enabled.
+        if video_writer is not None:
+            video_writer.release()
+            logger.info("Video recording saved to %s", record_path)
 
         # 1. Stop camera thread and drain queue.
         camera.stop()

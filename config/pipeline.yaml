@@ -19,8 +19,8 @@ preprocessing:
 detection:
   resolutions: [320, 480, 640]     # Available engine resolutions (controller picks)
   default_resolution: 640          # Resolution used before controller warms up
-  confidence_base: 0.25            # Base NMS confidence threshold
-  confidence_steps: [0.0, 0.1, 0.2]  # Additive offsets for threshold_index {0,1,2}
+  confidence_base: 0.20            # Base NMS confidence threshold (balanced)
+  confidence_steps: [0.0, 0.05, 0.1]  # Additive offsets for threshold_index {0,1,2}
   iou_threshold: 0.45              # NMS IoU threshold
   max_detections: 100              # Maximum boxes returned per frame
   engine_dir: models/detection/    # Directory containing .engine files
@@ -28,7 +28,7 @@ detection:
 segmentation:
   enabled: true                    # Whether Stage 2 may ever run
   resolution: 256                  # Fixed ROI crop size fed to UNet
-  min_confidence: 0.5              # Only segment ROIs with Stage 1 score ≥ this
+  min_confidence: 0.3              # Only segment ROIs with Stage 1 score ≥ this (LOWERED)
   engine_path: models/segmentation/unet_fp16.engine
 
 latency:
