@@ -41,7 +41,9 @@ def _try_pinned_alloc(height: int, width: int, channels: int = 3) -> Optional[np
     OpenCV built without CUDA support).
     """
     try:
-        host_mem = cv2.cuda.HostMem(height, width, cv2.CV_8UC(channels), cv2.cuda.HostMem_PAGE_LOCKED)
+        host_mem = cv2.cuda.HostMem(
+            height, width, cv2.CV_8UC(channels), cv2.cuda.HostMem_PAGE_LOCKED
+        )
         return host_mem.createMatHeader()
     except (cv2.error, AttributeError, SystemError):
         return None
@@ -112,7 +114,9 @@ class CameraCapture:
         self._thread.start()
         logger.info(
             "Camera started  source=%s  fps=%d  queue_size=%d",
-            self._source, self._fps, self._queue.maxsize,
+            self._source,
+            self._fps,
+            self._queue.maxsize,
         )
 
     def stop(self) -> None:
@@ -126,7 +130,8 @@ class CameraCapture:
             self._cap = None
         logger.info(
             "Camera stopped  frames_acquired=%d  frames_dropped=%d",
-            self._frame_id, self._frames_dropped,
+            self._frame_id,
+            self._frames_dropped,
         )
 
     def get_frame(self, timeout: Optional[float] = None) -> Optional[Frame]:
@@ -165,7 +170,10 @@ class CameraCapture:
             cap.release()
             logger.warning(
                 "Camera open attempt %d/%d failed for source=%s, retrying in %.1fs",
-                attempt, _MAX_RETRIES, self._source, _RETRY_BACKOFF_S,
+                attempt,
+                _MAX_RETRIES,
+                self._source,
+                _RETRY_BACKOFF_S,
             )
             time.sleep(_RETRY_BACKOFF_S)
 

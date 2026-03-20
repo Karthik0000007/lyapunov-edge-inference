@@ -44,6 +44,7 @@ _YOLO_INPUT_CHANNELS: int = 3
 
 # ── Per-resolution engine wrapper ────────────────────────────────────────────
 
+
 class _SingleEngine:
     """Holds a deserialised TensorRT engine with pre-allocated I/O buffers."""
 
@@ -73,9 +74,7 @@ class _SingleEngine:
         runtime = trt.Runtime(trt_logger)
         self.engine = runtime.deserialize_cuda_engine(raw)
         if self.engine is None:
-            raise RuntimeError(
-                f"Failed to deserialise TensorRT engine: {engine_path}"
-            )
+            raise RuntimeError(f"Failed to deserialise TensorRT engine: {engine_path}")
         self.context = self.engine.create_execution_context()
 
         # ── Identify I/O tensor shapes ────────────────────────────────────
@@ -93,14 +92,10 @@ class _SingleEngine:
         input_nbytes = int(np.prod(self.input_shape) * np.float32().itemsize)
         output_nbytes = int(np.prod(self.output_shape) * np.float32().itemsize)
 
-        self.h_input = cuda.pagelocked_empty(
-            int(np.prod(self.input_shape)), dtype=np.float32
-        )
+        self.h_input = cuda.pagelocked_empty(int(np.prod(self.input_shape)), dtype=np.float32)
         self.d_input = cuda.mem_alloc(input_nbytes)
 
-        self.h_output = cuda.pagelocked_empty(
-            int(np.prod(self.output_shape)), dtype=np.float32
-        )
+        self.h_output = cuda.pagelocked_empty(int(np.prod(self.output_shape)), dtype=np.float32)
         self.d_output = cuda.mem_alloc(output_nbytes)
 
         logger.info(
@@ -120,6 +115,7 @@ class _SingleEngine:
 
 
 # ── DetectionEngine ──────────────────────────────────────────────────────────
+
 
 class DetectionEngine:
     """Multi-resolution YOLOv8-Nano TensorRT inference engine.
@@ -154,9 +150,7 @@ class DetectionEngine:
         engine_dir = Path(config.get("engine_dir", "models/detection/"))
 
         # ── Build resolution → index mapping ──────────────────────────────
-        self._res_to_idx: Dict[int, int] = {
-            r: i for i, r in enumerate(self._resolutions)
-        }
+        self._res_to_idx: Dict[int, int] = {r: i for i, r in enumerate(self._resolutions)}
 
         # ── Shared TRT logger ─────────────────────────────────────────────
         self._trt_logger = _TRTLogger()
@@ -166,13 +160,9 @@ class DetectionEngine:
         for res in self._resolutions:
             path = engine_dir / f"yolov8n_{res}.engine"
             if not path.exists():
-                raise FileNotFoundError(
-                    f"Detection engine file not found: {path}"
-                )
+                raise FileNotFoundError(f"Detection engine file not found: {path}")
             try:
-                self._engines.append(
-                    _SingleEngine(path, res, self._trt_logger)
-                )
+                self._engines.append(_SingleEngine(path, res, self._trt_logger))
             except cuda.MemoryError:
                 logger.critical(
                     "CUDA OOM while loading detection engine %s – "
@@ -251,12 +241,8 @@ class DetectionEngine:
             cuda.memcpy_htod_async(eng.d_input, eng.h_input, eng.stream)
 
             # ── Execute ──────────────────────────────────────────────────
-            eng.context.set_tensor_address(
-                eng.engine.get_tensor_name(0), int(eng.d_input)
-            )
-            eng.context.set_tensor_address(
-                eng.engine.get_tensor_name(1), int(eng.d_output)
-            )
+            eng.context.set_tensor_address(eng.engine.get_tensor_name(0), int(eng.d_input))
+            eng.context.set_tensor_address(eng.engine.get_tensor_name(1), int(eng.d_output))
             eng.context.execute_async_v3(stream_handle=eng.stream.handle)
 
             # ── Async D→H copy ───────────────────────────────────────────
@@ -277,15 +263,13 @@ class DetectionEngine:
 
         # ── NaN / Inf guard ──────────────────────────────────────────────
         if not np.isfinite(raw_output).all():
-            logger.warning(
-                "NaN/Inf detected in detection output; discarding frame"
-            )
+            logger.warning("NaN/Inf detected in detection output; discarding frame")
             return []
 
         # ── Post-process (NMS) ───────────────────────────────────────────
-        conf_threshold = self._conf_base + self._conf_steps[
-            min(threshold_index, len(self._conf_steps) - 1)
-        ]
+        conf_threshold = (
+            self._conf_base + self._conf_steps[min(threshold_index, len(self._conf_steps) - 1)]
+        )
         detections = self._postprocess(raw_output, conf_threshold, res)
         return detections
 
@@ -300,9 +284,7 @@ class DetectionEngine:
 
         # Resize to engine resolution.
         if image.shape[0] != resolution or image.shape[1] != resolution:
-            image = cv2.resize(
-                image, (resolution, resolution), interpolation=cv2.INTER_LINEAR
-            )
+            image = cv2.resize(image, (resolution, resolution), interpolation=cv2.INTER_LINEAR)
 
         # uint8 → float32 and normalise.
         if image.dtype != np.float32:
@@ -353,9 +335,7 @@ class DetectionEngine:
         boxes_xyxy = np.stack([x1, y1, x2, y2], axis=1)
 
         # OpenCV NMS (expects x, y, w, h as integers for NMSBoxes).
-        boxes_xywh = np.stack(
-            [x1, y1, boxes_cxcywh[:, 2], boxes_cxcywh[:, 3]], axis=1
-        ).tolist()
+        boxes_xywh = np.stack([x1, y1, boxes_cxcywh[:, 2], boxes_cxcywh[:, 3]], axis=1).tolist()
         scores_list = confidences.tolist()
 
         indices = cv2.dnn.NMSBoxes(
@@ -400,5 +380,5 @@ class DetectionEngine:
         self._free_engines()
 
     def __del__(self) -> None:
-        if hasattr(self, '_engines'):
+        if hasattr(self, "_engines"):
             self._free_engines()

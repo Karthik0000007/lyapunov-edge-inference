@@ -29,6 +29,7 @@ ConfigDict = Dict[str, Any]
 
 # ── YAML / Config ─────────────────────────────────────────────────────────────
 
+
 def _deep_merge(base: ConfigDict, override: ConfigDict) -> ConfigDict:
     """
     Recursively merge *override* into a deep copy of *base*.
@@ -37,11 +38,7 @@ def _deep_merge(base: ConfigDict, override: ConfigDict) -> ConfigDict:
     """
     result = copy.deepcopy(base)
     for key, value in override.items():
-        if (
-            key in result
-            and isinstance(result[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = _deep_merge(result[key], value)
         else:
             result[key] = copy.deepcopy(value)
@@ -116,7 +113,7 @@ def load_all_configs(
     dict
         Merged configuration containing all sections.
     """
-    pipeline_cfg  = load_config(pipeline_path)
+    pipeline_cfg = load_config(pipeline_path)
     controller_cfg = load_config(controller_path)
     merged = _deep_merge(pipeline_cfg, controller_cfg)
 
@@ -128,6 +125,7 @@ def load_all_configs(
 
 
 # ── Device Setup ──────────────────────────────────────────────────────────────
+
 
 def setup_device(device_str: Optional[str] = None) -> torch.device:
     """
@@ -177,21 +175,22 @@ def setup_device(device_str: Optional[str] = None) -> torch.device:
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
+
 class _ColourFormatter(logging.Formatter):
     """ANSI-colour formatter for console output."""
 
-    _GREY    = "\x1b[38;5;245m"
-    _CYAN    = "\x1b[36m"
-    _YELLOW  = "\x1b[33m"
-    _RED     = "\x1b[31m"
+    _GREY = "\x1b[38;5;245m"
+    _CYAN = "\x1b[36m"
+    _YELLOW = "\x1b[33m"
+    _RED = "\x1b[31m"
     _BOLD_RED = "\x1b[1;31m"
-    _RESET   = "\x1b[0m"
+    _RESET = "\x1b[0m"
 
     _LEVEL_COLOURS = {
-        logging.DEBUG:    _GREY,
-        logging.INFO:     _CYAN,
-        logging.WARNING:  _YELLOW,
-        logging.ERROR:    _RED,
+        logging.DEBUG: _GREY,
+        logging.INFO: _CYAN,
+        logging.WARNING: _YELLOW,
+        logging.ERROR: _RED,
         logging.CRITICAL: _BOLD_RED,
     }
 
@@ -269,6 +268,7 @@ def setup_logging(
 
 # ── Checkpoint Path Resolution ────────────────────────────────────────────────
 
+
 def resolve_checkpoint(
     checkpoint_dir: str | Path,
     filename: str = "checkpoint.pt",
@@ -317,6 +317,7 @@ def resolve_checkpoint(
 
 
 # ── SHA-256 Hash Verification ─────────────────────────────────────────────────
+
 
 def compute_sha256(file_path: str | Path) -> str:
     """

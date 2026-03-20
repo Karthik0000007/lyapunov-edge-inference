@@ -112,15 +112,15 @@ def build_engine(
 
     logger.info(
         "Building engine — resolution=%d  precision=%s  workspace=%d GiB",
-        resolution, precision, max_workspace_gb,
+        resolution,
+        precision,
+        max_workspace_gb,
     )
 
     # ── Build ────────────────────────────────────────────────────────────
     serialized_engine = builder.build_serialized_network(network, config)
     if serialized_engine is None:
-        raise RuntimeError(
-            f"TensorRT engine build failed for resolution={resolution}"
-        )
+        raise RuntimeError(f"TensorRT engine build failed for resolution={resolution}")
 
     # ── Serialise ────────────────────────────────────────────────────────
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +132,7 @@ def build_engine(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

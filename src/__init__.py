@@ -41,6 +41,8 @@ Utility functions
     resolve_checkpoint, compute_sha256, verify_checkpoint
 """
 
+import logging as _logging
+
 from src.state_features import (
     ControllerAction,
     ControllerState,
@@ -59,7 +61,6 @@ from src.utils import (
     verify_checkpoint,
 )
 
-import logging as _logging
 _logger = _logging.getLogger(__name__)
 
 # Controller & agent — lazy imports to avoid hard GPU dependency at package level.

@@ -38,6 +38,7 @@ _MOST_CONSERVATIVE_ACTION: int = 4
 
 # ── ConformalPredictor ───────────────────────────────────────────────────────
 
+
 class ConformalPredictor:
     """Conformal prediction system with ACI online adaptation.
 
@@ -132,14 +133,11 @@ class ConformalPredictor:
         self._scores.extend(scores.tolist())
 
         # Extract quantile at (1 − α).
-        self._quantile = float(
-            np.quantile(scores, 1.0 - self._alpha_target)
-        )
+        self._quantile = float(np.quantile(scores, 1.0 - self._alpha_target))
         self._calibrated = True
 
         logger.info(
-            "Calibrated on %d samples — quantile q̂_{1-α}=%.4f ms  "
-            "(α=%.4f)",
+            "Calibrated on %d samples — quantile q̂_{1-α}=%.4f ms  " "(α=%.4f)",
             n,
             self._quantile,
             self._alpha_target,
@@ -260,9 +258,7 @@ class ConformalPredictor:
 
         # Recompute quantile from updated calibration set.
         if len(self._scores) > 0:
-            self._quantile = float(
-                np.quantile(list(self._scores), 1.0 - self._alpha)
-            )
+            self._quantile = float(np.quantile(list(self._scores), 1.0 - self._alpha))
 
     # ── Accessors ────────────────────────────────────────────────────────
 

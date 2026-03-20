@@ -39,6 +39,7 @@ _NUM_ACTIONS: int = 18
 
 # ── Trace loading (reuse from train_ppo) ────────────────────────────────────
 
+
 def load_traces(traces_dir: Path) -> Dict[str, np.ndarray]:
     """Load Parquet traces into numpy arrays."""
     import pandas as pd
@@ -65,6 +66,7 @@ def load_traces(traces_dir: Path) -> Dict[str, np.ndarray]:
 
 # ── Phase 3a: Transition model pre-training ─────────────────────────────────
 
+
 def train_transition_model(
     agent: LyapunovPPOAgent,
     states: np.ndarray,
@@ -90,9 +92,11 @@ def train_transition_model(
         n_batches = 0
 
         for start in range(0, n, batch_size):
-            idx = perm[start:start + batch_size]
+            idx = perm[start : start + batch_size]
             loss = agent.lyapunov.update_transition(
-                s_t[idx], a_t[idx], ns_t[idx],
+                s_t[idx],
+                a_t[idx],
+                ns_t[idx],
             )
             epoch_loss += loss
             n_batches += 1
@@ -108,6 +112,7 @@ def train_transition_model(
 
 
 # ── Phase 3b: Lyapunov critic pre-training ──────────────────────────────────
+
 
 def train_lyapunov_critic(
     agent: LyapunovPPOAgent,
@@ -134,9 +139,11 @@ def train_lyapunov_critic(
         n_batches = 0
 
         for start in range(0, n, batch_size):
-            idx = perm[start:start + batch_size]
+            idx = perm[start : start + batch_size]
             loss = agent.lyapunov.update_critic(
-                s_t[idx], c_t[idx], ns_t[idx],
+                s_t[idx],
+                c_t[idx],
+                ns_t[idx],
             )
             epoch_loss += loss
             n_batches += 1
@@ -152,6 +159,7 @@ def train_lyapunov_critic(
 
 
 # ── Phase 3c: PPO with Lyapunov action masking ──────────────────────────────
+
 
 def train_ppo_lyapunov(
     agent: LyapunovPPOAgent,
@@ -174,18 +182,21 @@ def train_ppo_lyapunov(
     traces_path.parent.mkdir(parents=True, exist_ok=True)
     n = len(traces["states"])
     resolution_map = {0.0: 320, 0.5: 480, 1.0: 640}
-    df = pd.DataFrame({
-        "latency_ms": np.random.default_rng(42).normal(30, 10, n).clip(5, 100),
-        "detection_count": (traces["states"][:, 3] * 50).astype(int),
-        "mean_confidence": traces["states"][:, 4],
-        "defect_area_ratio": traces["states"][:, 5],
-        "gpu_util_percent": traces["states"][:, 9] * 100,
-        "gpu_temp_celsius": traces["states"][:, 10] * 70 + 30,
-        "resolution_active": [resolution_map.get(round(v * 2) / 2, 640)
-                              for v in traces["states"][:, 6]],
-        "segmentation_active": traces["states"][:, 8].astype(bool),
-        "threshold_active": traces["states"][:, 7] * 0.2 + 0.25,
-    })
+    df = pd.DataFrame(
+        {
+            "latency_ms": np.random.default_rng(42).normal(30, 10, n).clip(5, 100),
+            "detection_count": (traces["states"][:, 3] * 50).astype(int),
+            "mean_confidence": traces["states"][:, 4],
+            "defect_area_ratio": traces["states"][:, 5],
+            "gpu_util_percent": traces["states"][:, 9] * 100,
+            "gpu_temp_celsius": traces["states"][:, 10] * 70 + 30,
+            "resolution_active": [
+                resolution_map.get(round(v * 2) / 2, 640) for v in traces["states"][:, 6]
+            ],
+            "segmentation_active": traces["states"][:, 8].astype(bool),
+            "threshold_active": traces["states"][:, 7] * 0.2 + 0.25,
+        }
+    )
     df.to_parquet(traces_path, engine="pyarrow", index=False)
 
     env = LatencyEnv(
@@ -250,7 +261,10 @@ def train_ppo_lyapunov(
             next_value = agent.critic(final_state).squeeze().item()
 
         returns, advantages = agent.compute_gae(
-            rewards_list, values_list, dones_list, next_value,
+            rewards_list,
+            values_list,
+            dones_list,
+            next_value,
         )
 
         states_t = torch.tensor(np.array(states_list), dtype=torch.float32)
@@ -264,7 +278,7 @@ def train_ppo_lyapunov(
             n = len(states_list)
             perm = torch.randperm(n)
             for start in range(0, n, minibatch_size):
-                idx = perm[start:start + minibatch_size]
+                idx = perm[start : start + minibatch_size]
                 epoch_metrics = agent.update(
                     states=states_t[idx],
                     actions=actions_t[idx],
@@ -295,7 +309,8 @@ def train_ppo_lyapunov(
             logger.info(
                 "  Lyap-PPO Epoch %3d/%d — reward=%.4f  viol=%.2f%%  "
                 "safe_set=%.1f  L(s)=%.4f  lyap_loss=%.6f  trans_loss=%.6f",
-                epoch, epochs,
+                epoch,
+                epochs,
                 mean_reward,
                 violation_rate * 100,
                 mean_safe_set,
@@ -318,6 +333,7 @@ def train_ppo_lyapunov(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

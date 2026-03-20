@@ -7,9 +7,9 @@ Unit tests for LyapunovPPOAgent core RL methods:
 - select_action() — action selection with Lyapunov masking
 """
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
 from src.agent_lyapunov_ppo import LyapunovPPOAgent
 
@@ -158,13 +158,17 @@ class TestUpdate:
         next_states = torch.rand(B, 11)
 
         result = agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         expected_keys = [
-            "policy_loss", "value_loss", "entropy",
-            "lyapunov_loss", "transition_loss", "lambda", "total_loss"
+            "policy_loss",
+            "value_loss",
+            "entropy",
+            "lyapunov_loss",
+            "transition_loss",
+            "lambda",
+            "total_loss",
         ]
         for key in expected_keys:
             assert key in result, f"Missing key: {key}"
@@ -186,8 +190,7 @@ class TestUpdate:
         next_states = torch.rand(B, 11)
 
         agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         # Check weights changed
@@ -221,8 +224,7 @@ class TestUpdate:
         initial_lambda = agent.lagrangian.lambda_value
 
         result = agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         # Lambda should increase with violations above threshold
@@ -242,8 +244,7 @@ class TestUpdate:
         next_states = torch.rand(B, 11)
 
         result = agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         # Should not produce NaN
@@ -263,8 +264,7 @@ class TestUpdate:
         next_states = torch.rand(B, 11)
 
         result = agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         # Should complete without error and produce finite loss
@@ -282,8 +282,7 @@ class TestUpdate:
         next_states = torch.rand(B, 11)
 
         result = agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         assert result["entropy"] >= 0.0
@@ -358,8 +357,7 @@ class TestNaNRecovery:
         next_states = torch.rand(B, 11)
 
         agent.update(
-            states, actions, old_log_probs, returns, advantages,
-            constraint_costs, next_states
+            states, actions, old_log_probs, returns, advantages, constraint_costs, next_states
         )
 
         # Verify last_good checkpoint is set

@@ -45,6 +45,7 @@ _LATENCY_BUDGET_MS: float = 50.0
 
 # ── Default agent config ────────────────────────────────────────────────────
 
+
 def _default_agent_config(checkpoint_dir: str) -> Dict[str, Any]:
     return {
         "ppo": {
@@ -74,6 +75,7 @@ def _default_agent_config(checkpoint_dir: str) -> Dict[str, Any]:
 
 # ── Bootstrap CI ─────────────────────────────────────────────────────────────
 
+
 def bootstrap_ci(
     data: np.ndarray,
     stat_fn,
@@ -100,6 +102,7 @@ def bootstrap_ci(
 
 
 # ── Single-seed evaluation ──────────────────────────────────────────────────
+
 
 def evaluate_seed(
     agent: LyapunovPPOAgent,
@@ -176,6 +179,7 @@ def evaluate_seed(
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
+
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate Lyapunov-PPO agent on logged traces.",
@@ -194,8 +198,13 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--seeds", type=int, default=10, help="Number of evaluation seeds.")
     parser.add_argument("--frames", type=int, default=10000, help="Frames per seed run.")
-    parser.add_argument("--latency-noise-std", dest="latency_noise_std", type=float, default=2.0,
-                        help="Stochastic noise std for latency (ms).")
+    parser.add_argument(
+        "--latency-noise-std",
+        dest="latency_noise_std",
+        type=float,
+        default=2.0,
+        help="Stochastic noise std for latency (ms).",
+    )
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
         "--output-dir",
@@ -257,10 +266,18 @@ def main(argv: List[str] | None = None) -> None:
 
     # Write aggregate summary.
     agg: Dict[str, Any] = {"method": "PPO+Lyapunov+CP", "num_seeds": args.seeds}
-    for key in ["p50_latency_ms", "p95_latency_ms", "p99_latency_ms",
-                "mean_latency_ms", "violation_rate", "mean_reward",
-                "throughput_mean_fps", "throughput_var",
-                "rl_overhead_mean_us", "rl_overhead_p99_us"]:
+    for key in [
+        "p50_latency_ms",
+        "p95_latency_ms",
+        "p99_latency_ms",
+        "mean_latency_ms",
+        "violation_rate",
+        "mean_reward",
+        "throughput_mean_fps",
+        "throughput_var",
+        "rl_overhead_mean_us",
+        "rl_overhead_p99_us",
+    ]:
         vals = [m[key] for m in all_metrics]
         agg[f"{key}_mean"] = float(np.mean(vals))
         agg[f"{key}_std"] = float(np.std(vals))
@@ -289,8 +306,11 @@ def main(argv: List[str] | None = None) -> None:
     )
     logger.info("  Violation rate: %.2f%%", agg["violation_rate_mean"] * 100)
     logger.info("  Mean reward: %.4f", agg["mean_reward_mean"])
-    logger.info("  RL overhead: %.1f μs (P99: %.1f μs)",
-                agg["rl_overhead_mean_us_mean"], agg["rl_overhead_p99_us_mean"])
+    logger.info(
+        "  RL overhead: %.1f μs (P99: %.1f μs)",
+        agg["rl_overhead_mean_us_mean"],
+        agg["rl_overhead_p99_us_mean"],
+    )
     logger.info("=" * 60)
 
 

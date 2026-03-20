@@ -76,12 +76,22 @@ def _apply_plotly_theme(fig) -> None:
         ),
     )
     fig.update_xaxes(
-        showgrid=True, gridcolor="lightgray", gridwidth=0.5,
-        zeroline=False, showline=True, linecolor="black", linewidth=1,
+        showgrid=True,
+        gridcolor="lightgray",
+        gridwidth=0.5,
+        zeroline=False,
+        showline=True,
+        linecolor="black",
+        linewidth=1,
     )
     fig.update_yaxes(
-        showgrid=True, gridcolor="lightgray", gridwidth=0.5,
-        zeroline=False, showline=True, linecolor="black", linewidth=1,
+        showgrid=True,
+        gridcolor="lightgray",
+        gridwidth=0.5,
+        zeroline=False,
+        showline=True,
+        linecolor="black",
+        linewidth=1,
     )
 
 
@@ -96,8 +106,9 @@ def _save_figure(fig, path: Path, also_paper: bool = True) -> None:
         logger.info("  PDF  → %s", path.with_suffix(".pdf"))
     except Exception:
         try:
-            fig.write_image(str(path.with_suffix(".png")),
-                            width=_FIG_WIDTH, height=_FIG_HEIGHT, scale=2)
+            fig.write_image(
+                str(path.with_suffix(".png")), width=_FIG_WIDTH, height=_FIG_HEIGHT, scale=2
+            )
             logger.info("  PNG  → %s", path.with_suffix(".png"))
         except Exception:
             logger.warning("  Static export unavailable (install kaleido for PDF/PNG)")
@@ -117,6 +128,7 @@ def _load_csv(path: Path) -> List[Dict[str, str]]:
 
 # ── Plot 1: Latency time-series ────────────────────────────────────────────
 
+
 def plot_latency_timeseries(results_dir: Path, output_dir: Path) -> None:
     """Latency time-series with P99 reference line at 50 ms."""
     import plotly.graph_objects as go
@@ -131,40 +143,54 @@ def plot_latency_timeseries(results_dir: Path, output_dir: Path) -> None:
     latencies = np.clip(latencies, 5.0, 90.0)
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=list(range(n)), y=latencies,
-        mode="lines", name="Frame latency",
-        line=dict(color=_COLORS[0], width=0.8),
-        opacity=0.7,
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(n)),
+            y=latencies,
+            mode="lines",
+            name="Frame latency",
+            line=dict(color=_COLORS[0], width=0.8),
+            opacity=0.7,
+        )
+    )
 
     # Rolling P99.
     window = 100
     p99_rolling = [
-        float(np.percentile(latencies[max(0, i - window):i + 1], 99))
-        for i in range(n)
+        float(np.percentile(latencies[max(0, i - window) : i + 1], 99)) for i in range(n)
     ]
-    fig.add_trace(go.Scatter(
-        x=list(range(n)), y=p99_rolling,
-        mode="lines", name="Rolling P99",
-        line=dict(color=_COLORS[3], width=2),
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(n)),
+            y=p99_rolling,
+            mode="lines",
+            name="Rolling P99",
+            line=dict(color=_COLORS[3], width=2),
+        )
+    )
 
     # Budget line.
-    fig.add_hline(y=_BUDGET_MS, line_dash="dash", line_color="red",
-                  annotation_text="Budget (50 ms)", annotation_position="top right")
+    fig.add_hline(
+        y=_BUDGET_MS,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="Budget (50 ms)",
+        annotation_position="top right",
+    )
 
     fig.update_layout(
         title="Latency Time-Series with P99 Envelope",
         xaxis_title="Frame",
         yaxis_title="Latency (ms)",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "latency_timeseries")
 
 
 # ── Plot 2: Latency CDF / histogram ────────────────────────────────────────
+
 
 def plot_latency_cdf(results_dir: Path, output_dir: Path) -> None:
     """Latency CDF/histogram with P95/P99 markers."""
@@ -182,36 +208,63 @@ def plot_latency_cdf(results_dir: Path, output_dir: Path) -> None:
     fig = make_subplots(rows=1, cols=2, subplot_titles=("Histogram", "CDF"))
 
     # Histogram.
-    fig.add_trace(go.Histogram(
-        x=latencies, nbinsx=80, name="Latency",
-        marker_color=_COLORS[0], opacity=0.7,
-    ), row=1, col=1)
+    fig.add_trace(
+        go.Histogram(
+            x=latencies,
+            nbinsx=80,
+            name="Latency",
+            marker_color=_COLORS[0],
+            opacity=0.7,
+        ),
+        row=1,
+        col=1,
+    )
 
     # P95/P99 vertical lines on histogram.
     for val, label, color in [(p95, "P95", _COLORS[1]), (p99, "P99", _COLORS[3])]:
-        fig.add_vline(x=val, line_dash="dash", line_color=color,
-                      annotation_text=f"{label}={val:.1f}", row=1, col=1)
+        fig.add_vline(
+            x=val,
+            line_dash="dash",
+            line_color=color,
+            annotation_text=f"{label}={val:.1f}",
+            row=1,
+            col=1,
+        )
 
     # CDF.
     sorted_lat = np.sort(latencies)
     cdf = np.arange(1, len(sorted_lat) + 1) / len(sorted_lat)
-    fig.add_trace(go.Scatter(
-        x=sorted_lat, y=cdf, mode="lines", name="CDF",
-        line=dict(color=_COLORS[0], width=2),
-    ), row=1, col=2)
+    fig.add_trace(
+        go.Scatter(
+            x=sorted_lat,
+            y=cdf,
+            mode="lines",
+            name="CDF",
+            line=dict(color=_COLORS[0], width=2),
+        ),
+        row=1,
+        col=2,
+    )
 
     # P95/P99 markers on CDF.
-    fig.add_trace(go.Scatter(
-        x=[p95, p99], y=[0.95, 0.99],
-        mode="markers+text", name="Percentiles",
-        marker=dict(size=10, color=[_COLORS[1], _COLORS[3]]),
-        text=[f"P95={p95:.1f}", f"P99={p99:.1f}"],
-        textposition="top left",
-    ), row=1, col=2)
+    fig.add_trace(
+        go.Scatter(
+            x=[p95, p99],
+            y=[0.95, 0.99],
+            mode="markers+text",
+            name="Percentiles",
+            marker=dict(size=10, color=[_COLORS[1], _COLORS[3]]),
+            text=[f"P95={p95:.1f}", f"P99={p99:.1f}"],
+            textposition="top left",
+        ),
+        row=1,
+        col=2,
+    )
 
     fig.update_layout(
         title="Latency Distribution",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
         showlegend=False,
     )
     fig.update_xaxes(title_text="Latency (ms)", row=1, col=1)
@@ -223,6 +276,7 @@ def plot_latency_cdf(results_dir: Path, output_dir: Path) -> None:
 
 
 # ── Plot 3: Controller action heatmap ──────────────────────────────────────
+
 
 def plot_action_heatmap(results_dir: Path, output_dir: Path) -> None:
     """Controller action heatmap over time."""
@@ -242,25 +296,29 @@ def plot_action_heatmap(results_dir: Path, output_dir: Path) -> None:
         for a in actions[start:end]:
             heatmap[a, b] += 1
 
-    fig = go.Figure(data=go.Heatmap(
-        z=heatmap,
-        x=[f"{i * bin_size}-{(i + 1) * bin_size}" for i in range(n_bins)],
-        y=[f"A{i}" for i in range(18)],
-        colorscale="Viridis",
-        colorbar=dict(title="Count"),
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap,
+            x=[f"{i * bin_size}-{(i + 1) * bin_size}" for i in range(n_bins)],
+            y=[f"A{i}" for i in range(18)],
+            colorscale="Viridis",
+            colorbar=dict(title="Count"),
+        )
+    )
 
     fig.update_layout(
         title="Controller Action Distribution Over Time",
         xaxis_title="Frame Window",
         yaxis_title="Action Index",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "action_heatmap")
 
 
 # ── Plot 4: Conformal bound vs. actual ─────────────────────────────────────
+
 
 def plot_conformal_scatter(results_dir: Path, output_dir: Path) -> None:
     """Conformal bound vs. actual latency scatter plot."""
@@ -278,34 +336,44 @@ def plot_conformal_scatter(results_dir: Path, output_dir: Path) -> None:
     coverage = float(np.mean(covered))
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=actual, y=bounds, mode="markers",
-        marker=dict(size=3, color=_COLORS[0], opacity=0.4),
-        name=f"Coverage={coverage:.1%}",
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=actual,
+            y=bounds,
+            mode="markers",
+            marker=dict(size=3, color=_COLORS[0], opacity=0.4),
+            name=f"Coverage={coverage:.1%}",
+        )
+    )
 
     # Diagonal (perfect calibration).
-    fig.add_trace(go.Scatter(
-        x=[5, 80], y=[5, 80], mode="lines",
-        line=dict(color="gray", dash="dash"), name="y=x",
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=[5, 80],
+            y=[5, 80],
+            mode="lines",
+            line=dict(color="gray", dash="dash"),
+            name="y=x",
+        )
+    )
 
     # Budget lines.
-    fig.add_hline(y=_BUDGET_MS, line_dash="dot", line_color="red",
-                  annotation_text="Budget")
+    fig.add_hline(y=_BUDGET_MS, line_dash="dot", line_color="red", annotation_text="Budget")
     fig.add_vline(x=_BUDGET_MS, line_dash="dot", line_color="red")
 
     fig.update_layout(
         title="Conformal Upper Bound vs. Actual Latency",
         xaxis_title="Actual Latency (ms)",
         yaxis_title="Conformal Upper Bound (ms)",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "conformal_scatter")
 
 
 # ── Plot 5: Baseline comparison bar chart ──────────────────────────────────
+
 
 def plot_baseline_comparison(results_dir: Path, output_dir: Path) -> None:
     """Baseline comparison bar chart with error bars."""
@@ -329,27 +397,40 @@ def plot_baseline_comparison(results_dir: Path, output_dir: Path) -> None:
         viol_stds = [3.0, 0.2, 1.5, 1.0, 0.3]
 
     from plotly.subplots import make_subplots
+
     fig = make_subplots(rows=1, cols=2, subplot_titles=("P99 Latency", "Violation Rate"))
 
-    fig.add_trace(go.Bar(
-        x=methods, y=p99_means,
-        error_y=dict(type="data", array=p99_stds, visible=True),
-        marker_color=[_COLORS[i % len(_COLORS)] for i in range(len(methods))],
-        name="P99 (ms)",
-    ), row=1, col=1)
-    fig.add_hline(y=_BUDGET_MS, line_dash="dash", line_color="red",
-                  row=1, col=1, annotation_text="Budget")
+    fig.add_trace(
+        go.Bar(
+            x=methods,
+            y=p99_means,
+            error_y=dict(type="data", array=p99_stds, visible=True),
+            marker_color=[_COLORS[i % len(_COLORS)] for i in range(len(methods))],
+            name="P99 (ms)",
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_hline(
+        y=_BUDGET_MS, line_dash="dash", line_color="red", row=1, col=1, annotation_text="Budget"
+    )
 
-    fig.add_trace(go.Bar(
-        x=methods, y=viol_means,
-        error_y=dict(type="data", array=viol_stds, visible=True),
-        marker_color=[_COLORS[i % len(_COLORS)] for i in range(len(methods))],
-        name="Violation %",
-    ), row=1, col=2)
+    fig.add_trace(
+        go.Bar(
+            x=methods,
+            y=viol_means,
+            error_y=dict(type="data", array=viol_stds, visible=True),
+            marker_color=[_COLORS[i % len(_COLORS)] for i in range(len(methods))],
+            name="Violation %",
+        ),
+        row=1,
+        col=2,
+    )
 
     fig.update_layout(
         title="Baseline Comparison",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
         showlegend=False,
     )
     fig.update_yaxes(title_text="P99 Latency (ms)", row=1, col=1)
@@ -359,6 +440,7 @@ def plot_baseline_comparison(results_dir: Path, output_dir: Path) -> None:
 
 
 # ── Plot 6: Ablation chart ─────────────────────────────────────────────────
+
 
 def plot_ablation(results_dir: Path, output_dir: Path) -> None:
     """Ablation contribution chart."""
@@ -371,8 +453,16 @@ def plot_ablation(results_dir: Path, output_dir: Path) -> None:
         p99_means = [float(r["p99_latency_ms_mean"]) for r in rows]
         viol_means = [float(r["violation_rate_mean"]) * 100 for r in rows]
     else:
-        variants = ["PPO", "PPO+Lyap", "PPO+CP", "PPO+FB",
-                     "PPO+Lyap+CP", "PPO+Lyap+FB", "PPO+CP+FB", "PPO+Lyap+CP+FB"]
+        variants = [
+            "PPO",
+            "PPO+Lyap",
+            "PPO+CP",
+            "PPO+FB",
+            "PPO+Lyap+CP",
+            "PPO+Lyap+FB",
+            "PPO+CP+FB",
+            "PPO+Lyap+CP+FB",
+        ]
         p99_means = [55.2, 47.8, 49.1, 50.3, 44.5, 45.2, 46.0, 42.8]
         viol_means = [15.0, 5.2, 7.3, 8.1, 2.5, 3.0, 4.2, 1.2]
 
@@ -383,27 +473,31 @@ def plot_ablation(results_dir: Path, output_dir: Path) -> None:
     viol_means = [viol_means[i] for i in sorted_idx]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=variants, x=p99_means, orientation="h",
-        marker_color=[_COLORS[3] if v == "PPO+Lyap+CP+FB" else _COLORS[0]
-                       for v in variants],
-        text=[f"{v:.1f} ms" for v in p99_means],
-        textposition="outside",
-        name="P99 (ms)",
-    ))
-    fig.add_vline(x=_BUDGET_MS, line_dash="dash", line_color="red",
-                  annotation_text="Budget")
+    fig.add_trace(
+        go.Bar(
+            y=variants,
+            x=p99_means,
+            orientation="h",
+            marker_color=[_COLORS[3] if v == "PPO+Lyap+CP+FB" else _COLORS[0] for v in variants],
+            text=[f"{v:.1f} ms" for v in p99_means],
+            textposition="outside",
+            name="P99 (ms)",
+        )
+    )
+    fig.add_vline(x=_BUDGET_MS, line_dash="dash", line_color="red", annotation_text="Budget")
 
     fig.update_layout(
         title="Ablation Study: P99 Latency by Configuration",
         xaxis_title="P99 Latency (ms)",
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "ablation_chart")
 
 
 # ── Plot 7: Stress test heatmap ────────────────────────────────────────────
+
 
 def plot_stress_heatmap(results_dir: Path, output_dir: Path) -> None:
     """Stress test performance heatmap."""
@@ -417,8 +511,14 @@ def plot_stress_heatmap(results_dir: Path, output_dir: Path) -> None:
         viol_vals = [float(r["violation_rate_mean"]) * 100 for r in rows]
         reward_vals = [float(r["mean_reward_mean"]) for r in rows]
     else:
-        scenarios = ["steady_state", "defect_burst", "gpu_contention",
-                     "thermal_throttle", "distribution_shift", "combined_stress"]
+        scenarios = [
+            "steady_state",
+            "defect_burst",
+            "gpu_contention",
+            "thermal_throttle",
+            "distribution_shift",
+            "combined_stress",
+        ]
         p99_vals = [42.8, 51.3, 48.7, 46.5, 53.2, 58.1]
         viol_vals = [1.2, 8.5, 5.3, 3.8, 12.1, 18.5]
         reward_vals = [0.65, 0.48, 0.52, 0.58, 0.42, 0.35]
@@ -427,25 +527,29 @@ def plot_stress_heatmap(results_dir: Path, output_dir: Path) -> None:
     metrics_labels = ["P99 (ms)", "Violation %", "Reward"]
     z = np.array([p99_vals, viol_vals, reward_vals])
 
-    fig = go.Figure(data=go.Heatmap(
-        z=z,
-        x=scenarios,
-        y=metrics_labels,
-        colorscale="RdYlGn_r",
-        text=[[f"{v:.1f}" for v in row] for row in z],
-        texttemplate="%{text}",
-        colorbar=dict(title="Value"),
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=z,
+            x=scenarios,
+            y=metrics_labels,
+            colorscale="RdYlGn_r",
+            text=[[f"{v:.1f}" for v in row] for row in z],
+            texttemplate="%{text}",
+            colorbar=dict(title="Value"),
+        )
+    )
 
     fig.update_layout(
         title="Stress Test Performance Heatmap",
-        width=_FIG_WIDTH, height=_FIG_HALF_WIDTH,
+        width=_FIG_WIDTH,
+        height=_FIG_HALF_WIDTH,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "stress_heatmap")
 
 
 # ── Plot 8: Conformal coverage calibration ──────────────────────────────────
+
 
 def plot_conformal_calibration(results_dir: Path, output_dir: Path) -> None:
     """Conformal coverage calibration plot (empirical vs. nominal)."""
@@ -462,21 +566,29 @@ def plot_conformal_calibration(results_dir: Path, output_dir: Path) -> None:
     fig = go.Figure()
 
     # Perfect calibration line.
-    fig.add_trace(go.Scatter(
-        x=[0.80, 1.0], y=[0.80, 1.0], mode="lines",
-        line=dict(color="gray", dash="dash"), name="Perfect calibration",
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=[0.80, 1.0],
+            y=[0.80, 1.0],
+            mode="lines",
+            line=dict(color="gray", dash="dash"),
+            name="Perfect calibration",
+        )
+    )
 
     # Empirical vs nominal.
-    fig.add_trace(go.Scatter(
-        x=nominal_coverage, y=empirical_coverage,
-        mode="markers+lines",
-        marker=dict(size=10, color=_COLORS[0]),
-        line=dict(color=_COLORS[0], width=2),
-        name="ACI coverage",
-        text=[f"α={a}" for a in alphas],
-        textposition="top right",
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=nominal_coverage,
+            y=empirical_coverage,
+            mode="markers+lines",
+            marker=dict(size=10, color=_COLORS[0]),
+            line=dict(color=_COLORS[0], width=2),
+            name="ACI coverage",
+            text=[f"α={a}" for a in alphas],
+            textposition="top right",
+        )
+    )
 
     fig.update_layout(
         title="Conformal Coverage Calibration",
@@ -484,7 +596,8 @@ def plot_conformal_calibration(results_dir: Path, output_dir: Path) -> None:
         yaxis_title="Empirical Coverage",
         xaxis=dict(range=[0.78, 1.02]),
         yaxis=dict(range=[0.78, 1.02]),
-        width=_FIG_WIDTH, height=_FIG_HEIGHT,
+        width=_FIG_WIDTH,
+        height=_FIG_HEIGHT,
     )
     _apply_plotly_theme(fig)
     _save_figure(fig, output_dir / "conformal_calibration")
@@ -492,16 +605,21 @@ def plot_conformal_calibration(results_dir: Path, output_dir: Path) -> None:
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
+
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate publication-quality figures from evaluation results.",
     )
     parser.add_argument(
-        "--results-dir", type=Path, default=Path("results"),
+        "--results-dir",
+        type=Path,
+        default=Path("results"),
         help="Root directory containing evaluation results.",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("results/figures"),
+        "--output-dir",
+        type=Path,
+        default=Path("results/figures"),
         help="Output directory for figures.",
     )
     return parser.parse_args(argv)

@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 # ── Detection export (Ultralytics) ───────────────────────────────────────────
 
+
 def _export_detection(checkpoint: Path, output: Path, imgsz: int) -> Path:
     """Export YOLOv8n to ONNX via the Ultralytics API."""
     from ultralytics import YOLO  # type: ignore[import-untyped]
@@ -62,12 +63,14 @@ def _export_detection(checkpoint: Path, output: Path, imgsz: int) -> Path:
 
 # ── Segmentation export ─────────────────────────────────────────────────────
 
+
 def _export_segmentation(checkpoint: Path, output: Path) -> Path:
     """Export MobileNetV2-UNet to ONNX with dynamic batch dimension."""
-    import onnx  # type: ignore[import-untyped]
-
     # Lazy import to avoid pulling in the training script at module level.
     import sys
+
+    import onnx  # type: ignore[import-untyped]
+
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from train_segmentation import MobileNetV2UNet
 
@@ -123,6 +126,7 @@ def _export_segmentation(checkpoint: Path, output: Path) -> Path:
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

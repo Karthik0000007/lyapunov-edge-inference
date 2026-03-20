@@ -49,6 +49,7 @@ _CONSERVATIVE_ACTION: int = 4
 
 # ── Ablation controller ────────────────────────────────────────────────────
 
+
 class AblationController:
     """Agent wrapper with toggleable safety layers."""
 
@@ -118,6 +119,7 @@ class AblationController:
             with torch.no_grad():
                 logits = self._agent.actor(s).squeeze(0)
                 from torch.distributions import Categorical
+
                 dist = Categorical(logits=logits)
                 action = int(dist.sample().item())
 
@@ -125,11 +127,10 @@ class AblationController:
         if self._conf_on and self._conformal is not None:
             safe_actions = (
                 self._agent.lyapunov.compute_safe_actions(state_tensor)
-                if self._lyap_on else list(range(_NUM_ACTIONS))
+                if self._lyap_on
+                else list(range(_NUM_ACTIONS))
             )
-            action, _, _ = self._conformal.check_action(
-                state_tensor, action, safe_actions
-            )
+            action, _, _ = self._conformal.check_action(state_tensor, action, safe_actions)
 
         # Layer 3: Rule-based fallback.
         if self._fb_on:
@@ -157,6 +158,7 @@ class AblationController:
 
 
 # ── Scenario runners (reuse from stress_test) ──────────────────────────────
+
 
 def _run_ablation_variant(
     controller: AblationController,
@@ -212,23 +214,30 @@ def _run_ablation_variant(
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
+
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run ablation study on safety layers.",
     )
     parser.add_argument(
-        "--checkpoint", type=Path, default=Path("checkpoints/ppo_lyapunov"),
+        "--checkpoint",
+        type=Path,
+        default=Path("checkpoints/ppo_lyapunov"),
         help="Agent checkpoint directory.",
     )
     parser.add_argument(
-        "--traces", type=str, default="data/telemetry.parquet",
+        "--traces",
+        type=str,
+        default="data/telemetry.parquet",
         help="Path to Parquet trace file.",
     )
     parser.add_argument("--seeds", type=int, default=3, help="Number of seeds.")
     parser.add_argument("--frames", type=int, default=2000, help="Frames per run.")
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("results/ablation"),
+        "--output-dir",
+        type=Path,
+        default=Path("results/ablation"),
         help="Output directory.",
     )
     return parser.parse_args(argv)
@@ -246,11 +255,16 @@ def main(argv: List[str] | None = None) -> None:
 
     # Build agent.
     config = {
-        "ppo": {"gamma": 0.99, "gae_lambda": 0.95, "clip_epsilon": 0.2,
-                 "entropy_coeff": 0.01, "value_loss_coeff": 0.5,
-                 "max_grad_norm": 0.5, "hidden_size": 64},
-        "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01,
-                       "constraint_threshold": 0.01},
+        "ppo": {
+            "gamma": 0.99,
+            "gae_lambda": 0.95,
+            "clip_epsilon": 0.2,
+            "entropy_coeff": 0.01,
+            "value_loss_coeff": 0.5,
+            "max_grad_norm": 0.5,
+            "hidden_size": 64,
+        },
+        "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01, "constraint_threshold": 0.01},
         "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
         "agent": {"checkpoint_dir": str(args.checkpoint)},
     }
@@ -261,16 +275,26 @@ def main(argv: List[str] | None = None) -> None:
     # Build configuration matrix: Lyapunov × Conformal × Fallback.
     variants: List[AblationController] = []
     for lyap, conf, fb in itertools.product([True, False], repeat=3):
-        variants.append(AblationController(
-            agent, lyapunov_enabled=lyap, conformal_enabled=conf,
-            fallback_enabled=fb, device=device,
-        ))
+        variants.append(
+            AblationController(
+                agent,
+                lyapunov_enabled=lyap,
+                conformal_enabled=conf,
+                fallback_enabled=fb,
+                device=device,
+            )
+        )
 
     # Scenarios to test each variant on.
     scenarios = ["steady_state"]
 
-    logger.info("Running %d variants × %d scenarios × %d seeds × %d frames",
-                len(variants), len(scenarios), args.seeds, args.frames)
+    logger.info(
+        "Running %d variants × %d scenarios × %d seeds × %d frames",
+        len(variants),
+        len(scenarios),
+        args.seeds,
+        args.frames,
+    )
 
     all_results: List[Dict[str, Any]] = []
 
@@ -278,11 +302,10 @@ def main(argv: List[str] | None = None) -> None:
         for scenario in scenarios:
             for seed_idx in range(args.seeds):
                 seed = seed_idx * 42
-                logger.info("  %s | %s | seed %d/%d",
-                            variant.name, scenario, seed_idx + 1, args.seeds)
-                metrics = _run_ablation_variant(
-                    variant, args.traces, seed, args.frames, scenario
+                logger.info(
+                    "  %s | %s | seed %d/%d", variant.name, scenario, seed_idx + 1, args.seeds
                 )
+                metrics = _run_ablation_variant(variant, args.traces, seed, args.frames, scenario)
                 all_results.append(metrics)
                 logger.info(
                     "    P99=%.2f ms  viol=%.2f%%  reward=%.4f",
@@ -311,8 +334,14 @@ def main(argv: List[str] | None = None) -> None:
             "conformal": runs[0]["conformal"],
             "fallback": runs[0]["fallback"],
         }
-        for key in ["p50_latency_ms", "p95_latency_ms", "p99_latency_ms",
-                    "mean_latency_ms", "violation_rate", "mean_reward"]:
+        for key in [
+            "p50_latency_ms",
+            "p95_latency_ms",
+            "p99_latency_ms",
+            "mean_latency_ms",
+            "violation_rate",
+            "mean_reward",
+        ]:
             vals = [r[key] for r in runs]
             row[f"{key}_mean"] = float(np.mean(vals))
             row[f"{key}_std"] = float(np.std(vals))
@@ -332,7 +361,9 @@ def main(argv: List[str] | None = None) -> None:
     logger.info("-" * 80)
     logger.info("%-25s %8s %8s %8s %8s", "Variant", "P99", "Viol%", "Reward", "Delta P99")
 
-    full_system = next((r for r in agg_rows if r["lyapunov"] and r["conformal"] and r["fallback"]), None)
+    full_system = next(
+        (r for r in agg_rows if r["lyapunov"] and r["conformal"] and r["fallback"]), None
+    )
     full_p99 = full_system["p99_latency_ms_mean"] if full_system else 0.0
 
     for row in agg_rows:
@@ -357,8 +388,9 @@ def main(argv: List[str] | None = None) -> None:
         f.write("\\label{tab:ablation}\n")
         f.write("\\begin{tabular}{lccccccc}\n")
         f.write("\\toprule\n")
-        f.write("Variant & Lyap. & CP & FB & P99 (ms) & Viol. (\\%) & Reward & "
-                "$\\Delta$P99 \\\\\n")
+        f.write(
+            "Variant & Lyap. & CP & FB & P99 (ms) & Viol. (\\%) & Reward & " "$\\Delta$P99 \\\\\n"
+        )
         f.write("\\midrule\n")
         for row in agg_rows:
             delta = row["p99_latency_ms_mean"] - full_p99

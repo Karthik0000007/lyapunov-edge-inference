@@ -39,6 +39,7 @@ _IN_CHANNELS: int = 3
 
 # ── Dataset ──────────────────────────────────────────────────────────────────
 
+
 class DefectSegmentationDataset(Dataset):
     """Loads image–mask pairs from KolektorSDD2 layout.
 
@@ -84,8 +85,7 @@ class DefectSegmentationDataset(Dataset):
         img = torch.from_numpy(img.transpose(2, 0, 1))  # CHW
 
         mask = cv2.imread(str(gt_path), cv2.IMREAD_GRAYSCALE)
-        mask = cv2.resize(mask, (self.resolution, self.resolution),
-                          interpolation=cv2.INTER_NEAREST)
+        mask = cv2.resize(mask, (self.resolution, self.resolution), interpolation=cv2.INTER_NEAREST)
         mask = (mask > 127).astype(np.float32)
         mask = torch.from_numpy(mask).unsqueeze(0)  # 1HW
 
@@ -93,6 +93,7 @@ class DefectSegmentationDataset(Dataset):
 
 
 # ── MobileNetV2-UNet Model ──────────────────────────────────────────────────
+
 
 class _ConvBnRelu(nn.Module):
     """Conv2d → BatchNorm → ReLU6 block."""
@@ -122,8 +123,7 @@ class _DecoderBlock(nn.Module):
         x = self.up(x)
         # Handle spatial size mismatch from encoder.
         if x.shape[2:] != skip.shape[2:]:
-            x = F.interpolate(x, size=skip.shape[2:], mode="bilinear",
-                              align_corners=False)
+            x = F.interpolate(x, size=skip.shape[2:], mode="bilinear", align_corners=False)
         x = torch.cat([x, skip], dim=1)
         x = self.conv1(x)
         x = self.conv2(x)
@@ -145,30 +145,29 @@ class MobileNetV2UNet(nn.Module):
 
     def __init__(self, num_classes: int = 1, pretrained: bool = True) -> None:
         super().__init__()
-        from torchvision.models import mobilenet_v2, MobileNet_V2_Weights
+        from torchvision.models import MobileNet_V2_Weights, mobilenet_v2
 
         weights = MobileNet_V2_Weights.IMAGENET1K_V1 if pretrained else None
         backbone = mobilenet_v2(weights=weights)
         features = backbone.features
 
         # Encoder stages (frozen-option: caller can freeze if desired).
-        self.enc1 = nn.Sequential(*features[:4])     # → 24ch, H/4
-        self.enc2 = nn.Sequential(*features[4:7])    # → 32ch, H/8
-        self.enc3 = nn.Sequential(*features[7:14])   # → 96ch, H/16
+        self.enc1 = nn.Sequential(*features[:4])  # → 24ch, H/4
+        self.enc2 = nn.Sequential(*features[4:7])  # → 32ch, H/8
+        self.enc3 = nn.Sequential(*features[7:14])  # → 96ch, H/16
         self.enc4 = nn.Sequential(*features[14:18])  # → 320ch, H/32
 
         # Decoder (3 levels).
-        self.dec3 = _DecoderBlock(320, 96, 128)   # H/32 → H/16
-        self.dec2 = _DecoderBlock(128, 32, 64)    # H/16 → H/8
-        self.dec1 = _DecoderBlock(64, 24, 32)     # H/8  → H/4
+        self.dec3 = _DecoderBlock(320, 96, 128)  # H/32 → H/16
+        self.dec2 = _DecoderBlock(128, 32, 64)  # H/16 → H/8
+        self.dec1 = _DecoderBlock(64, 24, 32)  # H/8  → H/4
 
         # Final upsample ×4 and 1x1 conv to output.
-        self.final_up = nn.Upsample(scale_factor=4, mode="bilinear",
-                                    align_corners=False)
+        self.final_up = nn.Upsample(scale_factor=4, mode="bilinear", align_corners=False)
         self.head = nn.Conv2d(32, num_classes, kernel_size=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        s1 = self.enc1(x)   # 24ch, H/4
+        s1 = self.enc1(x)  # 24ch, H/4
         s2 = self.enc2(s1)  # 32ch, H/8
         s3 = self.enc3(s2)  # 96ch, H/16
         s4 = self.enc4(s3)  # 320ch, H/32
@@ -178,11 +177,12 @@ class MobileNetV2UNet(nn.Module):
         d1 = self.dec1(d2, s1)  # 32ch, H/4
 
         out = self.final_up(d1)  # 32ch, H
-        out = self.head(out)     # num_classes, H
+        out = self.head(out)  # num_classes, H
         return out
 
 
 # ── Loss ─────────────────────────────────────────────────────────────────────
+
 
 class BCEDiceLoss(nn.Module):
     """Combined binary cross-entropy + Dice loss."""
@@ -205,6 +205,7 @@ class BCEDiceLoss(nn.Module):
 
 # ── Metrics ──────────────────────────────────────────────────────────────────
 
+
 @torch.no_grad()
 def compute_iou(logits: torch.Tensor, targets: torch.Tensor) -> float:
     """Compute mean IoU for binary segmentation."""
@@ -217,6 +218,7 @@ def compute_iou(logits: torch.Tensor, targets: torch.Tensor) -> float:
 
 
 # ── Training loop ────────────────────────────────────────────────────────────
+
 
 def train(
     data_path: Path,
@@ -237,12 +239,18 @@ def train(
     val_ds = DefectSegmentationDataset(test_root, resolution=_SEG_RESOLUTION)
 
     train_loader = DataLoader(
-        train_ds, batch_size=batch, shuffle=True,
-        num_workers=2, pin_memory=(device.type == "cuda"),
+        train_ds,
+        batch_size=batch,
+        shuffle=True,
+        num_workers=2,
+        pin_memory=(device.type == "cuda"),
     )
     val_loader = DataLoader(
-        val_ds, batch_size=batch, shuffle=False,
-        num_workers=2, pin_memory=(device.type == "cuda"),
+        val_ds,
+        batch_size=batch,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=(device.type == "cuda"),
     )
 
     # Model.
@@ -293,22 +301,30 @@ def train(
 
         logger.info(
             "Epoch %3d/%d  loss=%.4f  val_IoU=%.4f  lr=%.2e",
-            epoch, epochs, train_loss, val_iou, current_lr,
+            epoch,
+            epochs,
+            train_loss,
+            val_iou,
+            current_lr,
         )
 
         # Save best.
         if val_iou > best_iou:
             best_iou = val_iou
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "val_iou": val_iou,
-                "num_classes": 1,
-                "resolution": _SEG_RESOLUTION,
-            }, best_path)
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "val_iou": val_iou,
+                    "num_classes": 1,
+                    "resolution": _SEG_RESOLUTION,
+                },
+                best_path,
+            )
             logger.info(
                 "  ↳ New best IoU=%.4f — checkpoint saved to %s",
-                best_iou, best_path,
+                best_iou,
+                best_path,
             )
 
     logger.info("Training complete — best val IoU=%.4f", best_iou)
@@ -316,6 +332,7 @@ def train(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

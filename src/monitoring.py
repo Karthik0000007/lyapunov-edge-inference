@@ -39,6 +39,7 @@ _NVML_QUERY_INTERVAL: int = 5  # query every N frames (aligned with controller)
 
 # ── Sliding-window statistics ─────────────────────────────────────────────────
 
+
 class MetricsWindow:
     """Deque-based sliding window that maintains sorted order for fast quantiles.
 
@@ -101,6 +102,7 @@ class MetricsWindow:
 
 # ── GPU Monitor ───────────────────────────────────────────────────────────────
 
+
 class GPUMonitor:
     """Cached NVML queries for GPU utilisation, temperature, and memory.
 
@@ -128,6 +130,7 @@ class GPUMonitor:
     def _init_nvml(self) -> None:
         try:
             import pynvml
+
             pynvml.nvmlInit()
             self._handle = pynvml.nvmlDeviceGetHandleByIndex(0)
             self._nvml_available = True
@@ -147,11 +150,13 @@ class GPUMonitor:
         t0 = time.perf_counter_ns()
         try:
             import pynvml
+
             util_info = pynvml.nvmlDeviceGetUtilizationRates(self._handle)
             self._util_percent = float(util_info.gpu)
             self._temp_celsius = float(
                 pynvml.nvmlDeviceGetTemperature(
-                    self._handle, pynvml.NVML_TEMPERATURE_GPU,
+                    self._handle,
+                    pynvml.NVML_TEMPERATURE_GPU,
                 )
             )
             mem_info = pynvml.nvmlDeviceGetMemoryInfo(self._handle)
@@ -187,6 +192,7 @@ class GPUMonitor:
         if self._nvml_available:
             try:
                 import pynvml
+
                 pynvml.nvmlShutdown()
             except Exception:
                 pass
@@ -194,6 +200,7 @@ class GPUMonitor:
 
 
 # ── Telemetry Logger ──────────────────────────────────────────────────────────
+
 
 class TelemetryLogger:
     """Append-only Parquet writer with automatic file rotation.
@@ -214,9 +221,7 @@ class TelemetryLogger:
         rotation_frames: Optional[int] = None,
         window_size: int = _DEFAULT_WINDOW_SIZE,
     ) -> None:
-        self._output_dir = Path(
-            output_dir or os.environ.get("TELEMETRY_DIR", _DEFAULT_OUTPUT_DIR)
-        )
+        self._output_dir = Path(output_dir or os.environ.get("TELEMETRY_DIR", _DEFAULT_OUTPUT_DIR))
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
         self._rotation_frames = rotation_frames or int(
@@ -257,7 +262,9 @@ class TelemetryLogger:
         try:
             df.to_parquet(filename, engine="pyarrow", index=False)
             logger.info(
-                "Wrote %d records to %s", len(self._buffer), filename,
+                "Wrote %d records to %s",
+                len(self._buffer),
+                filename,
             )
         except Exception:
             logger.warning("Telemetry write failed for %s — dropping buffer", filename)

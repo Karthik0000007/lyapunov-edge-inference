@@ -101,9 +101,7 @@ class TestNaNDetection:
 
         state = torch.rand(11)
         safe = mgr.compute_safe_actions(state)
-        assert safe == list(range(18)), (
-            "NaN detection should return full action set"
-        )
+        assert safe == list(range(18)), "NaN detection should return full action set"
         assert mgr._nan_detected is True
 
 
@@ -124,8 +122,7 @@ class TestCriticTraining:
 
         # Loss should decrease over iterations.
         assert losses[-1] < losses[0], (
-            f"TD loss should decrease: first={losses[0]:.4f}, "
-            f"last={losses[-1]:.4f}"
+            f"TD loss should decrease: first={losses[0]:.4f}, " f"last={losses[-1]:.4f}"
         )
 
     def test_transition_model_loss_decreases(self):
@@ -141,8 +138,7 @@ class TestCriticTraining:
             losses.append(loss)
 
         assert losses[-1] < losses[0], (
-            f"Transition loss should decrease: first={losses[0]:.4f}, "
-            f"last={losses[-1]:.4f}"
+            f"Transition loss should decrease: first={losses[0]:.4f}, " f"last={losses[-1]:.4f}"
         )
 
 

@@ -98,9 +98,9 @@ class TestNormalizationBounds:
         )
         t = s.to_tensor()
         for i in range(11):
-            assert t[i].item() == pytest.approx(0.0), (
-                f"Feature {i} should be 0.0 at minimum, got {t[i].item()}"
-            )
+            assert t[i].item() == pytest.approx(
+                0.0
+            ), f"Feature {i} should be 0.0 at minimum, got {t[i].item()}"
 
     def test_all_max_are_one(self):
         """All-maximum inputs should map to exactly 1.0."""
@@ -119,9 +119,9 @@ class TestNormalizationBounds:
         )
         t = s.to_tensor()
         for i in range(11):
-            assert t[i].item() == pytest.approx(1.0), (
-                f"Feature {i} should be 1.0 at maximum, got {t[i].item()}"
-            )
+            assert t[i].item() == pytest.approx(
+                1.0
+            ), f"Feature {i} should be 1.0 at maximum, got {t[i].item()}"
 
 
 class TestNormalizationMapping:

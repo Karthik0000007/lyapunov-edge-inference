@@ -80,9 +80,7 @@ class TestCalibrationCoverage:
         coverage = covered / n_test
         # Conformal prediction guarantees coverage >= 1-alpha in expectation;
         # with finite samples we allow a small tolerance (0.5%).
-        assert coverage >= 0.985, (
-            f"Coverage {coverage:.4f} below target 0.985 on {n_test} samples"
-        )
+        assert coverage >= 0.985, f"Coverage {coverage:.4f} below target 0.985 on {n_test} samples"
 
 
 class TestACIUpdate:
@@ -102,9 +100,9 @@ class TestACIUpdate:
         state = torch.rand(11)
         cp.update(state, action=0, observed_latency=999.0)
 
-        assert cp.alpha < alpha_before, (
-            f"Alpha should decrease on violation: {alpha_before} -> {cp.alpha}"
-        )
+        assert (
+            cp.alpha < alpha_before
+        ), f"Alpha should decrease on violation: {alpha_before} -> {cp.alpha}"
 
     def test_alpha_increases_on_no_violation(self):
         """When no violation (err_t=0), alpha should increase."""
@@ -120,9 +118,9 @@ class TestACIUpdate:
         state = torch.rand(11)
         cp.update(state, action=0, observed_latency=-999.0)
 
-        assert cp.alpha > alpha_before, (
-            f"Alpha should increase without violation: {alpha_before} -> {cp.alpha}"
-        )
+        assert (
+            cp.alpha > alpha_before
+        ), f"Alpha should increase without violation: {alpha_before} -> {cp.alpha}"
 
     def test_alpha_clamped_to_valid_range(self):
         """Alpha must remain in (1e-6, 1 - 1e-6)."""

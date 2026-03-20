@@ -43,6 +43,7 @@ _INPUT_DIM_TRANSITION: int = _STATE_DIM + _NUM_ACTIONS  # 29
 
 # ── Lyapunov Critic ─────────────────────────────────────────────────────────
 
+
 class LyapunovCritic(nn.Module):
     """Lyapunov critic L_φ(s): predicts discounted cumulative constraint cost.
 
@@ -76,6 +77,7 @@ class LyapunovCritic(nn.Module):
 
 
 # ── Transition Model ─────────────────────────────────────────────────────────
+
 
 class TransitionModel(nn.Module):
     """Tiny MLP predicting next state from (state, action).
@@ -133,6 +135,7 @@ class TransitionModel(nn.Module):
 
 
 # ── Lyapunov Manager ─────────────────────────────────────────────────────────
+
 
 class LyapunovManager:
     """Manages the Lyapunov critic, transition model, training, and
@@ -229,8 +232,7 @@ class LyapunovManager:
         # Check for NaN in Lyapunov value.
         if not np.isfinite(L_s):
             logger.warning(
-                "NaN/Inf in Lyapunov critic output; falling back to "
-                "unrestricted action set"
+                "NaN/Inf in Lyapunov critic output; falling back to " "unrestricted action set"
             )
             self._nan_detected = True
             return list(range(_NUM_ACTIONS))
@@ -356,9 +358,7 @@ class LyapunovManager:
         """
         self.transition.train()
 
-        oh = torch.zeros(
-            actions.shape[0], _NUM_ACTIONS, device=self._device
-        )
+        oh = torch.zeros(actions.shape[0], _NUM_ACTIONS, device=self._device)
         oh.scatter_(1, actions.unsqueeze(1).long(), 1.0)
         predicted = self.transition(states, oh)
         loss = nn.functional.mse_loss(predicted, next_states)

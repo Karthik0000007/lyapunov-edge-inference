@@ -17,10 +17,10 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ def analyze_trace_latencies(traces_dir: Path) -> Dict[str, float]:
     for trace_file in trace_files:
         try:
             df = pd.read_parquet(trace_file)
-            if 'latency_ms' in df.columns:
-                all_latencies.extend(df['latency_ms'].tolist())
+            if "latency_ms" in df.columns:
+                all_latencies.extend(df["latency_ms"].tolist())
             else:
                 logger.warning("No latency_ms column in %s", trace_file)
         except Exception as e:
@@ -74,60 +74,68 @@ def generate_exploration_configs(latency_stats: Dict[str, float]) -> List[Dict[s
 
     # 1. Conservative exploration (slight increase in entropy)
     conservative = base_config.copy()
-    conservative.update({
-        "name": "conservative_exploration",
-        "description": "Slightly increased exploration with moderate budget",
-        "latency_budget": max(25.0, latency_stats["p95"] * 0.8),  # 80% of P95
-        "entropy_coeff": 0.02,  # Double default entropy
-        "clip_epsilon": 0.25,   # Slightly larger policy updates
-    })
+    conservative.update(
+        {
+            "name": "conservative_exploration",
+            "description": "Slightly increased exploration with moderate budget",
+            "latency_budget": max(25.0, latency_stats["p95"] * 0.8),  # 80% of P95
+            "entropy_coeff": 0.02,  # Double default entropy
+            "clip_epsilon": 0.25,  # Slightly larger policy updates
+        }
+    )
     configs.append(conservative)
 
     # 2. Aggressive exploration (high entropy, strict budget)
     aggressive = base_config.copy()
-    aggressive.update({
-        "name": "aggressive_exploration",
-        "description": "High exploration with strict latency budget",
-        "latency_budget": max(20.0, latency_stats["p50"] * 1.1),  # Just above median
-        "entropy_coeff": 0.05,  # 5x default entropy
-        "clip_epsilon": 0.3,    # Larger policy updates
-        "epochs": 150,          # Fewer epochs due to aggressive exploration
-    })
+    aggressive.update(
+        {
+            "name": "aggressive_exploration",
+            "description": "High exploration with strict latency budget",
+            "latency_budget": max(20.0, latency_stats["p50"] * 1.1),  # Just above median
+            "entropy_coeff": 0.05,  # 5x default entropy
+            "clip_epsilon": 0.3,  # Larger policy updates
+            "epochs": 150,  # Fewer epochs due to aggressive exploration
+        }
+    )
     configs.append(aggressive)
 
     # 3. Progressive budget (starts strict, relaxes over time)
     progressive = base_config.copy()
-    progressive.update({
-        "name": "progressive_budget",
-        "description": "Budget starts strict and relaxes during training",
-        "latency_budget": max(22.0, latency_stats["p50"] * 1.2),
-        "entropy_coeff": 0.03,
-        "schedule": {
-            "budget_start": max(20.0, latency_stats["p50"] * 0.9),
-            "budget_end": max(35.0, latency_stats["p95"] * 0.9),
-            "schedule_epochs": 100,  # Relax budget over first 100 epochs
+    progressive.update(
+        {
+            "name": "progressive_budget",
+            "description": "Budget starts strict and relaxes during training",
+            "latency_budget": max(22.0, latency_stats["p50"] * 1.2),
+            "entropy_coeff": 0.03,
+            "schedule": {
+                "budget_start": max(20.0, latency_stats["p50"] * 0.9),
+                "budget_end": max(35.0, latency_stats["p95"] * 0.9),
+                "schedule_epochs": 100,  # Relax budget over first 100 epochs
+            },
         }
-    })
+    )
     configs.append(progressive)
 
     # 4. Curiosity-driven (encourage state visitation diversity)
     curiosity = base_config.copy()
-    curiosity.update({
-        "name": "curiosity_driven",
-        "description": "Encourage diverse state visitation",
-        "latency_budget": max(28.0, latency_stats["p95"] * 0.85),
-        "entropy_coeff": 0.04,
-        "rollout_length": 1500,  # Longer episodes for exploration
-        "exploration_bonus": True,  # Add exploration bonus if implemented
-    })
+    curiosity.update(
+        {
+            "name": "curiosity_driven",
+            "description": "Encourage diverse state visitation",
+            "latency_budget": max(28.0, latency_stats["p95"] * 0.85),
+            "entropy_coeff": 0.04,
+            "rollout_length": 1500,  # Longer episodes for exploration
+            "exploration_bonus": True,  # Add exploration bonus if implemented
+        }
+    )
     configs.append(curiosity)
 
     return configs
 
 
-def create_training_commands(configs: List[Dict[str, Any]],
-                           traces_dir: Path,
-                           output_dir: Path) -> List[str]:
+def create_training_commands(
+    configs: List[Dict[str, Any]], traces_dir: Path, output_dir: Path
+) -> List[str]:
     """Generate shell commands to run each exploration configuration."""
     commands = []
 
@@ -159,19 +167,15 @@ def main() -> None:
         "--base-traces",
         type=Path,
         required=True,
-        help="Directory containing trace files for analysis"
+        help="Directory containing trace files for analysis",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("config/exploration"),
-        help="Output directory for configs and scripts"
+        help="Output directory for configs and scripts",
     )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable verbose logging"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 
@@ -187,8 +191,7 @@ def main() -> None:
     # Analyze trace latencies
     logger.info("Analyzing latency distribution in %s...", args.base_traces)
     latency_stats = analyze_trace_latencies(args.base_traces)
-    logger.info("Latency analysis: %s",
-                {k: f"{v:.1f}ms" for k, v in latency_stats.items()})
+    logger.info("Latency analysis: %s", {k: f"{v:.1f}ms" for k, v in latency_stats.items()})
 
     # Generate exploration configs
     configs = generate_exploration_configs(latency_stats)
@@ -197,19 +200,22 @@ def main() -> None:
     # Save configurations
     for config in configs:
         config_file = args.output_dir / f"{config['name']}.json"
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             json.dump(config, f, indent=2)
         logger.info("Saved config: %s", config_file)
-        logger.info("  %s", config['description'])
-        logger.info("  Budget: %.1f ms, Entropy: %.3f",
-                   config['latency_budget'], config.get('entropy_coeff', 0.01))
+        logger.info("  %s", config["description"])
+        logger.info(
+            "  Budget: %.1f ms, Entropy: %.3f",
+            config["latency_budget"],
+            config.get("entropy_coeff", 0.01),
+        )
 
     # Generate training scripts
     commands = create_training_commands(configs, args.base_traces, args.output_dir)
 
     # Write master training script
     script_file = args.output_dir / "run_exploration_experiments.sh"
-    with open(script_file, 'w') as f:
+    with open(script_file, "w") as f:
         f.write("#!/bin/bash\n")
         f.write("# Exploration-optimized training experiments\n")
         f.write(f"# Generated from traces: {args.base_traces.resolve()}\n\n")
@@ -229,19 +235,23 @@ def main() -> None:
     logger.info("  bash %s", script_file)
     logger.info("\nOr run individual experiments:")
     for i, config in enumerate(configs, 1):
-        logger.info("  # %d. %s", i, config['description'])
+        logger.info("  # %d. %s", i, config["description"])
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("EXPLORATION CONFIGURATION SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print(f"Trace latency P95: {latency_stats['p95']:.1f} ms")
     print("Recommended budget for violations:")
     for config in configs:
-        budget = config['latency_budget']
-        entropy = config.get('entropy_coeff', 0.01)
-        violation_est = max(0, (budget - latency_stats['p50']) / (latency_stats['p95'] - latency_stats['p50']) * 30)
-        print(f"  {config['name']:20s}: {budget:5.1f} ms (entropy={entropy:.3f}, ~{violation_est:.1f}% violations)")
+        budget = config["latency_budget"]
+        entropy = config.get("entropy_coeff", 0.01)
+        violation_est = max(
+            0, (budget - latency_stats["p50"]) / (latency_stats["p95"] - latency_stats["p50"]) * 30
+        )
+        print(
+            f"  {config['name']:20s}: {budget:5.1f} ms (entropy={entropy:.3f}, ~{violation_est:.1f}% violations)"
+        )
 
 
 if __name__ == "__main__":

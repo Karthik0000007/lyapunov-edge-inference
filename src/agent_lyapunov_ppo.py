@@ -47,6 +47,7 @@ _NUM_ACTIONS: int = 18
 
 # ── Actor network ───────────────────────────────────────────────────────────
 
+
 class _Actor(nn.Module):
     """Policy network π_θ(a|s): 11 → hidden → hidden → 18 → softmax."""
 
@@ -67,6 +68,7 @@ class _Actor(nn.Module):
 
 # ── Value critic ─────────────────────────────────────────────────────────────
 
+
 class _ValueCritic(nn.Module):
     """Value function V_ψ(s): 11 → 64 → 64 → 1."""
 
@@ -85,6 +87,7 @@ class _ValueCritic(nn.Module):
 
 
 # ── LyapunovPPOAgent ────────────────────────────────────────────────────────
+
 
 class LyapunovPPOAgent:
     """Lyapunov-constrained PPO agent.
@@ -127,9 +130,7 @@ class LyapunovPPOAgent:
         self._max_grad_norm: float = ppo_cfg.get("max_grad_norm", 0.5)
         hidden = ppo_cfg.get("hidden_size", 64)
 
-        self._checkpoint_dir = Path(
-            agent_cfg.get("checkpoint_dir", "checkpoints/ppo_lyapunov/")
-        )
+        self._checkpoint_dir = Path(agent_cfg.get("checkpoint_dir", "checkpoints/ppo_lyapunov/"))
 
         # ── Networks ─────────────────────────────────────────────────────
         self._actor = _Actor(hidden_size=hidden).to(self._device)
@@ -153,8 +154,7 @@ class LyapunovPPOAgent:
         lyap_params = sum(p.numel() for p in self._lyapunov.critic.parameters())
         total = actor_params + critic_params + lyap_params
         logger.info(
-            "LyapunovPPOAgent ready — actor=%d  critic=%d  lyapunov=%d  "
-            "total=%d params",
+            "LyapunovPPOAgent ready — actor=%d  critic=%d  lyapunov=%d  " "total=%d params",
             actor_params,
             critic_params,
             lyap_params,
@@ -163,9 +163,7 @@ class LyapunovPPOAgent:
 
     # ── Action selection ─────────────────────────────────────────────────
 
-    def select_action(
-        self, state: torch.Tensor
-    ) -> Tuple[int, float, float, float]:
+    def select_action(self, state: torch.Tensor) -> Tuple[int, float, float, float]:
         """Select an action using the actor with Lyapunov masking.
 
         Flow:
@@ -300,9 +298,7 @@ class LyapunovPPOAgent:
         mean_cost = constraint_costs.mean()
         total_policy_loss = self._lagrangian.augmented_loss(policy_loss, mean_cost)
         total_loss = (
-            total_policy_loss
-            + self._value_loss_coeff * value_loss
-            - self._entropy_coeff * entropy
+            total_policy_loss + self._value_loss_coeff * value_loss - self._entropy_coeff * entropy
         )
 
         # ── Backward + clip ──────────────────────────────────────────────
@@ -436,15 +432,11 @@ class LyapunovPPOAgent:
         lag_path = d / "lagrangian.pt"
 
         if actor_path.exists():
-            self._actor.load_state_dict(
-                torch_load_compat(actor_path, map_location=self._device)
-            )
+            self._actor.load_state_dict(torch_load_compat(actor_path, map_location=self._device))
             logger.info("Loaded actor from %s", actor_path)
 
         if critic_path.exists():
-            self._critic.load_state_dict(
-                torch_load_compat(critic_path, map_location=self._device)
-            )
+            self._critic.load_state_dict(torch_load_compat(critic_path, map_location=self._device))
             logger.info("Loaded critic from %s", critic_path)
 
         if lag_path.exists():

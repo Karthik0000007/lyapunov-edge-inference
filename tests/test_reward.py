@@ -6,7 +6,7 @@ Unit tests for reward computation functions.
 
 import pytest
 
-from src.reward import compute_reward, decode_action, action_l1_distance
+from src.reward import action_l1_distance, compute_reward, decode_action
 
 
 class TestDecodeAction:
@@ -117,8 +117,8 @@ class TestComputeReward:
         reward = compute_reward(
             mean_confidence=1.0,
             detection_count=100,
-            curr_action=0,    # (res=-1, thr=-1, seg=0)
-            prev_action=17,   # (res=+1, thr=+1, seg=1)
+            curr_action=0,  # (res=-1, thr=-1, seg=0)
+            prev_action=17,  # (res=+1, thr=+1, seg=1)
             n_max=100,
             churn_penalty=0.05,
         )

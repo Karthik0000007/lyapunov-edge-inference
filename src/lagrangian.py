@@ -85,9 +85,7 @@ class LagrangianDual:
         float
             Updated λ value.
         """
-        self._lambda = max(
-            0.0, self._lambda + self._lr * (constraint_cost - self._threshold)
-        )
+        self._lambda = max(0.0, self._lambda + self._lr * (constraint_cost - self._threshold))
         return self._lambda
 
     # ── Augmented loss ───────────────────────────────────────────────────

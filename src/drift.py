@@ -31,12 +31,13 @@ logger = logging.getLogger(__name__)
 # ── Defaults ──────────────────────────────────────────────────────────────────
 
 _DEFAULT_HISTORY_LEN: int = 20
-_DEFAULT_ALERT_THRESHOLD: int = 5     # min frames with p < alpha to trigger
-_DEFAULT_ALPHA: float = 0.01          # KS-test significance level
-_DEFAULT_NUM_BINS: int = 256          # histogram bins for grayscale
+_DEFAULT_ALERT_THRESHOLD: int = 5  # min frames with p < alpha to trigger
+_DEFAULT_ALPHA: float = 0.01  # KS-test significance level
+_DEFAULT_NUM_BINS: int = 256  # histogram bins for grayscale
 
 
 # ── Intensity Drift Detector ─────────────────────────────────────────────────
+
 
 class IntensityDriftDetector:
     """Two-sample Kolmogorov-Smirnov test on grayscale intensity histograms.
@@ -140,6 +141,7 @@ class IntensityDriftDetector:
 
 # ── Confidence Drift Detector (CUSUM) ────────────────────────────────────────
 
+
 class ConfidenceDriftDetector:
     """CUSUM (Cumulative Sum) change-point detector on mean detection
     confidence.
@@ -218,6 +220,7 @@ class ConfidenceDriftDetector:
 
 
 # ── Unified Drift Monitor ────────────────────────────────────────────────────
+
 
 class DriftMonitor:
     """Unified façade combining intensity and confidence drift detectors.

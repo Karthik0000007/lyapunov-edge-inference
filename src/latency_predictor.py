@@ -40,6 +40,7 @@ _INPUT_DIM: int = _STATE_DIM + _NUM_ACTIONS  # 29
 
 # ── Network ──────────────────────────────────────────────────────────────────
 
+
 class _LatencyMLP(nn.Module):
     """Two-hidden-layer MLP: 29 → 32 → 32 → 1."""
 
@@ -58,6 +59,7 @@ class _LatencyMLP(nn.Module):
 
 
 # ── LatencyPredictor ─────────────────────────────────────────────────────────
+
 
 class LatencyPredictor:
     """Predicts per-frame latency from (state, action) pairs.
@@ -126,9 +128,7 @@ class LatencyPredictor:
         return float(self._model(x).item())
 
     @torch.no_grad()
-    def predict_batch(
-        self, states: torch.Tensor, actions: torch.Tensor
-    ) -> torch.Tensor:
+    def predict_batch(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         """Predict latencies for a batch.
 
         Parameters
@@ -144,9 +144,7 @@ class LatencyPredictor:
             ``(B,)`` predicted latencies.
         """
         self._model.eval()
-        one_hot = torch.zeros(
-            actions.shape[0], _NUM_ACTIONS, device=self._device
-        )
+        one_hot = torch.zeros(actions.shape[0], _NUM_ACTIONS, device=self._device)
         one_hot.scatter_(1, actions.unsqueeze(1).long(), 1.0)
         x = torch.cat([states, one_hot], dim=1)
         return self._model(x)
@@ -244,7 +242,10 @@ class LatencyPredictor:
                     val_loss = criterion(val_pred, l_val).item()
                 logger.info(
                     "Epoch %3d/%d — train MSE: %.4f  val MSE: %.4f",
-                    epoch + 1, epochs, avg_loss, val_loss,
+                    epoch + 1,
+                    epochs,
+                    avg_loss,
+                    val_loss,
                 )
 
         self._model.eval()
@@ -262,9 +263,7 @@ class LatencyPredictor:
     def load(self, path: Optional[Path] = None) -> None:
         """Load model weights from disk."""
         path = path or self._checkpoint_path
-        state_dict = torch_load_compat(
-            path, map_location=self._device
-        )
+        state_dict = torch_load_compat(path, map_location=self._device)
         self._model.load_state_dict(state_dict)
         self._model.eval()
 

@@ -45,8 +45,8 @@ def test_violation_tracking(
 
     # Check original latency distribution
     df = pd.read_parquet(trace_file)
-    if 'latency_ms' in df.columns:
-        latencies = df['latency_ms']
+    if "latency_ms" in df.columns:
+        latencies = df["latency_ms"]
         logger.info("Original trace latency distribution:")
         logger.info("  Mean: %.2f ms", latencies.mean())
         logger.info("  P95:  %.2f ms", latencies.quantile(0.95))
@@ -56,18 +56,18 @@ def test_violation_tracking(
 
     # Test different action strategies
     strategies = [
-        ("conservative", [0, 1, 2]),     # Low-cost actions
-        ("aggressive", [15, 16, 17]),    # High-cost actions
-        ("mixed", [0, 8, 16]),           # Mix of low/high cost
-        ("random", None),                # Random actions
+        ("conservative", [0, 1, 2]),  # Low-cost actions
+        ("aggressive", [15, 16, 17]),  # High-cost actions
+        ("mixed", [0, 8, 16]),  # Mix of low/high cost
+        ("random", None),  # Random actions
     ]
 
     results = {}
 
     for strategy_name, action_list in strategies:
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
         logger.info("Testing strategy: %s", strategy_name.upper())
-        logger.info("="*60)
+        logger.info("=" * 60)
 
         env = LatencyEnv(
             trace_path=trace_file,
@@ -101,7 +101,10 @@ def test_violation_tracking(
                 if step < 10:  # Log first 10 steps for debugging
                     logger.debug(
                         "  Step %2d: action=%2d, latency=%.2f ms, violation=%s",
-                        step, action, latency, "YES" if constraint_cost > 0 else "no"
+                        step,
+                        action,
+                        latency,
+                        "YES" if constraint_cost > 0 else "no",
                     )
 
                 if terminated or truncated:
@@ -116,8 +119,12 @@ def test_violation_tracking(
 
             logger.info(
                 "  Episode %d: violations=%d/%d (%.1f%%), mean_lat=%.2f ms, max_lat=%.2f ms",
-                episode + 1, violations, steps_per_episode,
-                violation_rate * 100, mean_latency, max_latency
+                episode + 1,
+                violations,
+                steps_per_episode,
+                violation_rate * 100,
+                mean_latency,
+                max_latency,
             )
 
         # Summary statistics
@@ -133,13 +140,16 @@ def test_violation_tracking(
 
         logger.info(
             "Strategy '%s' summary: %.1f±%.1f%% violations, %.2f ms avg latency",
-            strategy_name, mean_viol_rate, std_viol_rate, mean_latency
+            strategy_name,
+            mean_viol_rate,
+            std_viol_rate,
+            mean_latency,
         )
 
     # Overall summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("FINAL RESULTS SUMMARY")
-    logger.info("="*60)
+    logger.info("=" * 60)
     logger.info("Budget: %.1f ms", budget_ms)
 
     for strategy, metrics in results.items():
@@ -147,7 +157,7 @@ def test_violation_tracking(
             "%-12s: %5.1f%% violations, %5.2f ms avg latency",
             strategy.capitalize(),
             metrics["violation_rate_pct"],
-            metrics["mean_latency_ms"]
+            metrics["mean_latency_ms"],
         )
 
     # Check if violation tracking is working
@@ -166,33 +176,17 @@ def test_violation_tracking(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Debug violation tracking system")
     parser.add_argument(
-        "--traces",
-        type=Path,
-        required=True,
-        help="Directory containing trace files"
+        "--traces", type=Path, required=True, help="Directory containing trace files"
     )
     parser.add_argument(
         "--budget",
         type=float,
         default=30.0,
-        help="Latency budget in ms (try lower values like 20-30)")
-    parser.add_argument(
-        "--episodes",
-        type=int,
-        default=5,
-        help="Number of episodes per strategy"
+        help="Latency budget in ms (try lower values like 20-30)",
     )
-    parser.add_argument(
-        "--steps",
-        type=int,
-        default=200,
-        help="Steps per episode"
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable debug logging"
-    )
+    parser.add_argument("--episodes", type=int, default=5, help="Number of episodes per strategy")
+    parser.add_argument("--steps", type=int, default=200, help="Steps per episode")
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     return parser.parse_args()
 
 

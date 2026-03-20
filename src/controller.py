@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-_NUM_RESOLUTIONS: int = 3   # {0: 320, 1: 480, 2: 640}
-_NUM_THRESHOLDS: int = 3    # {0: base, 1: +0.1, 2: +0.2}
+_NUM_RESOLUTIONS: int = 3  # {0: 320, 1: 480, 2: 640}
+_NUM_THRESHOLDS: int = 3  # {0: base, 1: +0.1, 2: +0.2}
 
 # Most-conservative action: lowest resolution, highest threshold, seg off.
 # Encoding: res_code=0, thr_code=2, seg=0 → 0*6 + 2*2 + 0 = 4.
@@ -42,23 +42,25 @@ _MAX_DEGRADATION_ACTION: int = 4
 
 # ── Decision record ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class ControllerDecision:
     """Introspection record for a single controller decision."""
 
-    raw_action: int                 # RL agent's proposed action
-    safe_actions: List[int]         # Lyapunov safe set
-    lyapunov_value: float           # L_φ(s)
-    conformal_bound: float          # U_t (conformal upper bound)
-    conformal_overridden: bool      # Whether conformal override fired
-    fallback_active: bool           # Whether rule-based fallback is active
-    final_action: int               # Action actually applied
-    resolution_index: int           # Resulting resolution index
-    threshold_index: int            # Resulting threshold index
-    segmentation_enabled: bool      # Resulting segmentation flag
+    raw_action: int  # RL agent's proposed action
+    safe_actions: List[int]  # Lyapunov safe set
+    lyapunov_value: float  # L_φ(s)
+    conformal_bound: float  # U_t (conformal upper bound)
+    conformal_overridden: bool  # Whether conformal override fired
+    fallback_active: bool  # Whether rule-based fallback is active
+    final_action: int  # Action actually applied
+    resolution_index: int  # Resulting resolution index
+    threshold_index: int  # Resulting threshold index
+    segmentation_enabled: bool  # Resulting segmentation flag
 
 
 # ── AdaptiveController ───────────────────────────────────────────────────────
+
 
 class AdaptiveController:
     """Three-layer adaptive controller.
@@ -114,8 +116,8 @@ class AdaptiveController:
         )
 
         # ── Pipeline config state ────────────────────────────────────────
-        self._resolution_index: int = 2   # Start at max quality (640)
-        self._threshold_index: int = 0    # Start at base threshold
+        self._resolution_index: int = 2  # Start at max quality (640)
+        self._threshold_index: int = 0  # Start at base threshold
         self._segmentation_enabled: bool = True
 
         # ── Held action (used between decision frames) ───────────────────
@@ -123,8 +125,7 @@ class AdaptiveController:
         self._last_decision: Optional[ControllerDecision] = None
 
         logger.info(
-            "AdaptiveController ready — decision_freq=%d  "
-            "conformal=%s  fallback=%s",
+            "AdaptiveController ready — decision_freq=%d  " "conformal=%s  fallback=%s",
             self._decision_freq,
             "ON" if self._conformal.enabled else "OFF",
             "ON" if fallback_cfg.get("enabled", True) else "OFF",
@@ -162,25 +163,18 @@ class AdaptiveController:
         self._fallback.update(violated)
 
         # Decision-frequency gating: only decide every k-th frame.
-        if (
-            self._frame_counter % self._decision_freq != 1
-            and self._held_action is not None
-        ):
+        if self._frame_counter % self._decision_freq != 1 and self._held_action is not None:
             return self._held_action
 
         state_tensor = state.to_tensor()
 
         # ── Layer 1: RL agent ────────────────────────────────────────
-        action_idx, log_prob, value, lyap_val = self._agent.select_action(
-            state_tensor
-        )
+        action_idx, log_prob, value, lyap_val = self._agent.select_action(state_tensor)
         safe_actions = self._agent.lyapunov.compute_safe_actions(state_tensor)
 
         # ── Layer 2: Conformal override ──────────────────────────────
-        final_idx, conformal_bound, was_overridden = (
-            self._conformal.check_action(
-                state_tensor, action_idx, safe_actions
-            )
+        final_idx, conformal_bound, was_overridden = self._conformal.check_action(
+            state_tensor, action_idx, safe_actions
         )
 
         # ── Layer 3: Rule-based fallback ─────────────────────────────
@@ -278,6 +272,7 @@ class AdaptiveController:
 
 # ── Rule-based fallback checker ──────────────────────────────────────────────
 
+
 class _RuleFallbackChecker:
     """Tracks consecutive latency violations and manages fallback state.
 
@@ -296,9 +291,7 @@ class _RuleFallbackChecker:
         (default 50).
     """
 
-    def __init__(
-        self, violation_trigger: int = 3, recovery_window: int = 50
-    ) -> None:
+    def __init__(self, violation_trigger: int = 3, recovery_window: int = 50) -> None:
         self._trigger: int = violation_trigger
         self._recovery: int = recovery_window
 
@@ -319,10 +312,7 @@ class _RuleFallbackChecker:
             self._clean_frames = 0
 
             # Activate if enough consecutive violations.
-            if (
-                not self._active
-                and self._consecutive_violations >= self._trigger
-            ):
+            if not self._active and self._consecutive_violations >= self._trigger:
                 self._active = True
                 logger.warning(
                     "Fallback ACTIVATED after %d consecutive violations",

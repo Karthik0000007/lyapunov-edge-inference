@@ -24,13 +24,17 @@ logger = logging.getLogger(__name__)
 class TRTLogger(trt.ILogger if trt else object):  # type: ignore[misc]
     """Bridge TensorRT log messages into Python logging."""
 
-    _LEVEL_MAP = {
-        trt.Logger.INTERNAL_ERROR: logging.CRITICAL,
-        trt.Logger.ERROR: logging.ERROR,
-        trt.Logger.WARNING: logging.WARNING,
-        trt.Logger.INFO: logging.INFO,
-        trt.Logger.VERBOSE: logging.DEBUG,
-    } if trt else {}
+    _LEVEL_MAP = (
+        {
+            trt.Logger.INTERNAL_ERROR: logging.CRITICAL,
+            trt.Logger.ERROR: logging.ERROR,
+            trt.Logger.WARNING: logging.WARNING,
+            trt.Logger.INFO: logging.INFO,
+            trt.Logger.VERBOSE: logging.DEBUG,
+        }
+        if trt
+        else {}
+    )
 
     def __init__(self) -> None:
         if trt:

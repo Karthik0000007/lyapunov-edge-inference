@@ -42,6 +42,7 @@ _NUM_ACTIONS: int = 18
 
 # ── Trace loading ────────────────────────────────────────────────────────────
 
+
 def load_calibration_data(
     traces_dir: Path,
 ) -> Dict[str, np.ndarray]:
@@ -66,6 +67,7 @@ def load_calibration_data(
 
 
 # ── Calibration pipeline ────────────────────────────────────────────────────
+
 
 def calibrate(
     traces_dir: Path,
@@ -103,8 +105,8 @@ def calibrate(
 
     perm = np.random.default_rng(42).permutation(n)
     train_idx = perm[:n_train]
-    cal_idx = perm[n_train:n_train + n_cal]
-    val_idx = perm[n_train + n_cal:]
+    cal_idx = perm[n_train : n_train + n_cal]
+    val_idx = perm[n_train + n_cal :]
 
     logger.info("Split: train=%d  calibrate=%d  validate=%d", n_train, n_cal, n_val)
 
@@ -143,14 +145,18 @@ def calibrate(
 
     logger.info(
         "Nonconformity scores — mean=%.4f  std=%.4f  min=%.4f  max=%.4f",
-        scores.mean(), scores.std(), scores.min(), scores.max(),
+        scores.mean(),
+        scores.std(),
+        scores.min(),
+        scores.max(),
     )
 
     # ── Step 3: Extract calibration quantile at 1−α ──────────────────────
     quantile = float(np.quantile(scores, 1.0 - alpha))
     logger.info(
         "Step 3: Calibration quantile q̂_{1-α} = %.4f ms  (α=%.4f)",
-        quantile, alpha,
+        quantile,
+        alpha,
     )
 
     # ── Step 4: Verify coverage on validation set ────────────────────────
@@ -178,7 +184,8 @@ def calibrate(
         violation_residuals = latencies[val_idx][violations] - predicted_val[violations]
         logger.info(
             "  Violations: %d/%d  mean excess=%.4f ms  max excess=%.4f ms",
-            violations.sum(), n_val,
+            violations.sum(),
+            n_val,
             violation_residuals.mean() - quantile,
             violation_residuals.max() - quantile,
         )
@@ -196,8 +203,13 @@ def calibrate(
 
     # ── Step 6: Generate calibration diagnostic plots ────────────────────
     _generate_diagnostics(
-        scores, predicted_val, latencies[val_idx], upper_bounds,
-        coverage, alpha, output_dir,
+        scores,
+        predicted_val,
+        latencies[val_idx],
+        upper_bounds,
+        coverage,
+        alpha,
+        output_dir,
     )
 
     return {
@@ -223,6 +235,7 @@ def _generate_diagnostics(
     """Generate calibration diagnostic plots (saved as PNG)."""
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
@@ -236,8 +249,7 @@ def _generate_diagnostics(
     ax = axes[0, 0]
     ax.hist(scores, bins=50, alpha=0.7, color="steelblue", edgecolor="black")
     quantile = float(np.quantile(scores, 1.0 - alpha))
-    ax.axvline(quantile, color="red", linestyle="--", linewidth=2,
-               label=f"q̂(1−α) = {quantile:.2f}")
+    ax.axvline(quantile, color="red", linestyle="--", linewidth=2, label=f"q̂(1−α) = {quantile:.2f}")
     ax.set_xlabel("Nonconformity Score (ms)")
     ax.set_ylabel("Frequency")
     ax.set_title("Residual Distribution (Calibration Set)")
@@ -256,12 +268,16 @@ def _generate_diagnostics(
     # Plot 3: Coverage over sorted samples.
     ax = axes[1, 0]
     sorted_idx = np.argsort(actual)
-    cumulative_coverage = np.cumsum(actual[sorted_idx] <= bounds[sorted_idx]) / np.arange(1, len(actual) + 1)
+    cumulative_coverage = np.cumsum(actual[sorted_idx] <= bounds[sorted_idx]) / np.arange(
+        1, len(actual) + 1
+    )
     ax.plot(cumulative_coverage, color="steelblue", linewidth=1)
-    ax.axhline(1.0 - alpha, color="red", linestyle="--", linewidth=1,
-               label=f"Target = {1.0 - alpha:.2f}")
-    ax.axhline(coverage, color="green", linestyle=":", linewidth=1,
-               label=f"Achieved = {coverage:.4f}")
+    ax.axhline(
+        1.0 - alpha, color="red", linestyle="--", linewidth=1, label=f"Target = {1.0 - alpha:.2f}"
+    )
+    ax.axhline(
+        coverage, color="green", linestyle=":", linewidth=1, label=f"Achieved = {coverage:.4f}"
+    )
     ax.set_xlabel("Sample Index (sorted by actual latency)")
     ax.set_ylabel("Cumulative Coverage")
     ax.set_title("Coverage Verification")
@@ -286,6 +302,7 @@ def _generate_diagnostics(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -344,7 +361,9 @@ def main(argv: List[str] | None = None) -> None:
     )
 
     logger.info("Calibration complete:")
-    logger.info("  Coverage: %.4f  (target ≥ %.4f)", results["coverage"], results["target_coverage"])
+    logger.info(
+        "  Coverage: %.4f  (target ≥ %.4f)", results["coverage"], results["target_coverage"]
+    )
     logger.info("  Quantile: %.4f ms", results["quantile"])
     logger.info("  Predictor final MSE: %.6f", results["final_train_mse"])
 

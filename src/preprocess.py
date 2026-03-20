@@ -114,9 +114,7 @@ class Preprocessor:
         if image is None or image.size == 0:
             logger.warning("Empty input image; returning blank frame")
             channels = 4 if (self._edge_channel and not bypass_extras) else 3
-            return np.zeros(
-                (target_resolution, target_resolution, channels), dtype=np.uint8
-            )
+            return np.zeros((target_resolution, target_resolution, channels), dtype=np.uint8)
 
         # Degenerate-input fallback: skip CLAHE, return raw resized.
         if _is_degenerate(image):

@@ -42,6 +42,7 @@ _SEG_INPUT_CHANNELS: int = 3
 
 # ── SegmentationEngine ───────────────────────────────────────────────────────
 
+
 class SegmentationEngine:
     """MobileNetV2-UNet TensorRT segmentation engine (256x256).
 
@@ -65,9 +66,7 @@ class SegmentationEngine:
 
         self._resolution: int = config.get("resolution", _SEG_RESOLUTION)
         self._min_confidence: float = config.get("min_confidence", 0.5)
-        engine_path = Path(config.get(
-            "engine_path", "models/segmentation/unet_fp16.engine"
-        ))
+        engine_path = Path(config.get("engine_path", "models/segmentation/unet_fp16.engine"))
 
         # ── Controllable enabled flag ─────────────────────────────────────
         self.enabled: bool = config.get("enabled", True)
@@ -77,17 +76,13 @@ class SegmentationEngine:
 
         # ── Deserialise engine ────────────────────────────────────────────
         if not engine_path.exists():
-            raise FileNotFoundError(
-                f"Segmentation engine file not found: {engine_path}"
-            )
+            raise FileNotFoundError(f"Segmentation engine file not found: {engine_path}")
         try:
             raw = engine_path.read_bytes()
             runtime = trt.Runtime(self._trt_logger)
             self._engine = runtime.deserialize_cuda_engine(raw)
             if self._engine is None:
-                raise RuntimeError(
-                    f"Failed to deserialise TensorRT engine: {engine_path}"
-                )
+                raise RuntimeError(f"Failed to deserialise TensorRT engine: {engine_path}")
             self._context = self._engine.create_execution_context()
         except cuda.MemoryError:
             logger.critical(
@@ -114,14 +109,10 @@ class SegmentationEngine:
         input_nbytes = int(np.prod(self._input_shape) * np.float32().itemsize)
         output_nbytes = int(np.prod(self._output_shape) * np.float32().itemsize)
 
-        self._h_input = cuda.pagelocked_empty(
-            int(np.prod(self._input_shape)), dtype=np.float32
-        )
+        self._h_input = cuda.pagelocked_empty(int(np.prod(self._input_shape)), dtype=np.float32)
         self._d_input = cuda.mem_alloc(input_nbytes)
 
-        self._h_output = cuda.pagelocked_empty(
-            int(np.prod(self._output_shape)), dtype=np.float32
-        )
+        self._h_output = cuda.pagelocked_empty(int(np.prod(self._output_shape)), dtype=np.float32)
         self._d_output = cuda.mem_alloc(output_nbytes)
 
         logger.info(
@@ -161,9 +152,7 @@ class SegmentationEngine:
             return None
 
         # Filter detections by confidence.
-        qualifying = [
-            d for d in detections if d.confidence >= self._min_confidence
-        ]
+        qualifying = [d for d in detections if d.confidence >= self._min_confidence]
         if not qualifying:
             return None
 
@@ -199,7 +188,8 @@ class SegmentationEngine:
 
         # ── Resize to engine resolution ──────────────────────────────────
         resized = cv2.resize(
-            roi, (self._resolution, self._resolution),
+            roi,
+            (self._resolution, self._resolution),
             interpolation=cv2.INTER_LINEAR,
         )
 
@@ -214,17 +204,11 @@ class SegmentationEngine:
             np.copyto(self._h_input, blob.ravel())
             cuda.memcpy_htod_async(self._d_input, self._h_input, self._stream)
 
-            self._context.set_tensor_address(
-                self._engine.get_tensor_name(0), int(self._d_input)
-            )
-            self._context.set_tensor_address(
-                self._engine.get_tensor_name(1), int(self._d_output)
-            )
+            self._context.set_tensor_address(self._engine.get_tensor_name(0), int(self._d_input))
+            self._context.set_tensor_address(self._engine.get_tensor_name(1), int(self._d_output))
             self._context.execute_async_v3(stream_handle=self._stream.handle)
 
-            cuda.memcpy_dtoh_async(
-                self._h_output, self._d_output, self._stream
-            )
+            cuda.memcpy_dtoh_async(self._h_output, self._d_output, self._stream)
             self._stream.synchronize()
 
         except cuda.MemoryError:
@@ -240,9 +224,7 @@ class SegmentationEngine:
 
         # NaN / Inf guard.
         if not np.isfinite(raw).all():
-            logger.warning(
-                "NaN/Inf detected in segmentation output; skipping ROI"
-            )
+            logger.warning("NaN/Inf detected in segmentation output; skipping ROI")
             return None
 
         # Handle multi-class (C, H, W) or binary (1, H, W) output.

@@ -1,0 +1,83 @@
+═══════════════════════════════════════════════════════════════
+                    DEMO CUE CARDS - 3 MINUTES
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────┐
+│ INTRO (30s) - Show README                                    │
+├─────────────────────────────────────────────────────────────┤
+│ • Lyapunov-constrained RL for defect detection              │
+│ • Challenge: accuracy + latency on edge GPU                 │
+│ • Target: P99 < 50ms on RTX 3050 (4GB VRAM)                 │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ START (30s) - Run command in terminal                       │
+├─────────────────────────────────────────────────────────────┤
+│ Command ready to paste:                                     │
+│ export CUDA_PATH="/c/Program Files/.../CUDA/v12.1"          │
+│ python main.py [full command...]                            │
+│                                                             │
+│ While loading:                                              │
+│ • YOLOv8-Nano + TensorRT FP16                              │
+│ • MobileNetV2-UNet segmentation                            │
+│ • Lyapunov-PPO agent                                        │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ VISUALS (60s) - Point to screen elements                    │
+├─────────────────────────────────────────────────────────────┤
+│ TOP-RIGHT: Status (DEFECT red / GOOD green)                 │
+│                                                             │
+│ BOXES: Defect detections (crazing, inclusions, patches)     │
+│                                                             │
+│ TOP-LEFT HUD:                                               │
+│   • Latency: 8-15 ms                                        │
+│   • Resolution: 320/480/640 (dynamic)                       │
+│   • Segmentation: ON/OFF                                    │
+│   • Detections: count                                        │
+│                                                             │
+│ BLUE OVERLAY: Pixel segmentation (when active)              │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ ARCHITECTURE (45s) - Technical details                      │
+├─────────────────────────────────────────────────────────────┤
+│ THREE-LAYER CONTROLLER:                                     │
+│                                                             │
+│ 1. Lyapunov-PPO Agent                                       │
+│    → <0.1ms decisions, 27 configs, safety constrained       │
+│                                                             │
+│ 2. Conformal Predictor                                      │
+│    → 99% latency upper bound, can override RL              │
+│                                                             │
+│ 3. Rule-based Fallback                                      │
+│    → Deterministic safety net                               │
+│                                                             │
+│ RESULT: <10ms inference, P99 < 50ms, 80%+ accuracy          │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ CONCLUSION (15s) - Wrap up                                  │
+├─────────────────────────────────────────────────────────────┤
+│ • RL + formal safety = real-time edge AI                    │
+│ • Production-ready: telemetry, drift, online updates        │
+│ • Thank you!                                                │
+└─────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════
+              KEY PHRASES TO EMPHASIZE
+═══════════════════════════════════════════════════════════════
+✓ "Lyapunov constraint"
+✓ "Hard P99 latency budget of 50 milliseconds"
+✓ "Three-layer adaptive controller"
+✓ "80% baseline accuracy"
+✓ "Formal safety guarantees"
+
+═══════════════════════════════════════════════════════════════
+              QUICK REMINDERS
+═══════════════════════════════════════════════════════════════
+• Moderate pace, natural tone
+• Point to screen as you mention elements
+• Let video run 30-45s in middle
+• Deep breath - you built this! 💪
+═══════════════════════════════════════════════════════════════

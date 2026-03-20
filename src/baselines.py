@@ -29,11 +29,12 @@ logger = logging.getLogger(__name__)
 # ── Constants ────────────────────────────────────────────────────────────────
 
 _NUM_ACTIONS: int = 18
-_NUM_RESOLUTIONS: int = 3   # {0: 320, 1: 480, 2: 640}
-_NUM_THRESHOLDS: int = 3    # {0: base, 1: +0.1, 2: +0.2}
+_NUM_RESOLUTIONS: int = 3  # {0: 320, 1: 480, 2: 640}
+_NUM_THRESHOLDS: int = 3  # {0: base, 1: +0.1, 2: +0.2}
 
 
 # ── Abstract base ───────────────────────────────────────────────────────────
+
 
 class BaseController(abc.ABC):
     """Abstract controller interface.
@@ -64,6 +65,7 @@ class BaseController(abc.ABC):
 
 
 # ── Fixed controllers ────────────────────────────────────────────────────────
+
 
 class FixedHighQualityController(BaseController):
     """Always selects maximum quality: 640, seg=on, base threshold.
@@ -97,6 +99,7 @@ class FixedLowLatencyController(BaseController):
 
 # ── Rule-based controller ───────────────────────────────────────────────────
 
+
 class RuleBasedController(BaseController):
     """Heuristic controller based on windowed P99 latency thresholds.
 
@@ -123,38 +126,31 @@ class RuleBasedController(BaseController):
 
         if p99 > self._high:
             # Aggressive degradation: lower resolution, raise threshold, seg off.
-            return ControllerAction.from_index(
-                self._encode(-1, 1, False)
-            )
+            return ControllerAction.from_index(self._encode(-1, 1, False))
 
         if p99 > self._mid:
             # Mild degradation: raise threshold only, keep resolution.
-            return ControllerAction.from_index(
-                self._encode(0, 1, False)
-            )
+            return ControllerAction.from_index(self._encode(0, 1, False))
 
         if p99 < self._low:
             # Upgrade: raise resolution, lower threshold, enable seg.
-            return ControllerAction.from_index(
-                self._encode(1, -1, True)
-            )
+            return ControllerAction.from_index(self._encode(1, -1, True))
 
         # Hold current configuration.
         seg_on = bool(state.segmentation_enabled)
-        return ControllerAction.from_index(
-            self._encode(0, 0, seg_on)
-        )
+        return ControllerAction.from_index(self._encode(0, 0, seg_on))
 
     @staticmethod
     def _encode(res_delta: int, thr_delta: int, seg: bool) -> int:
         """Encode factored action into flat index."""
-        res_code = res_delta + 1   # {-1, 0, +1} → {0, 1, 2}
+        res_code = res_delta + 1  # {-1, 0, +1} → {0, 1, 2}
         thr_code = thr_delta + 1
         seg_code = int(seg)
         return res_code * 6 + thr_code * 2 + seg_code
 
 
 # ── PID controller ──────────────────────────────────────────────────────────
+
 
 class PIDController(BaseController):
     """Proportional controller mapping latency error to action deltas.
@@ -187,17 +183,17 @@ class PIDController(BaseController):
 
         # Resolution delta.
         if signal > 0.5:
-            res_delta = -1   # Over budget → decrease resolution
+            res_delta = -1  # Over budget → decrease resolution
         elif signal < -0.5:
-            res_delta = 1    # Under budget → increase resolution
+            res_delta = 1  # Under budget → increase resolution
         else:
             res_delta = 0
 
         # Threshold delta (proportional, opposite direction).
         if signal > 0.3:
-            thr_delta = 1    # Over budget → raise threshold (fewer detections)
+            thr_delta = 1  # Over budget → raise threshold (fewer detections)
         elif signal < -0.3:
-            thr_delta = -1   # Under budget → lower threshold
+            thr_delta = -1  # Under budget → lower threshold
         else:
             thr_delta = 0
 

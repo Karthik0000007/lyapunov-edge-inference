@@ -44,6 +44,7 @@ _NUM_ACTIONS: int = 18
 
 # ── Trace loading ────────────────────────────────────────────────────────────
 
+
 def load_traces(traces_dir: Path) -> Dict[str, np.ndarray]:
     """Load all Parquet trace files from a directory into numpy arrays.
 
@@ -94,8 +95,9 @@ def load_traces(traces_dir: Path) -> Dict[str, np.ndarray]:
     constraint_costs = constraint_costs[valid_mask]
     rule_actions = actions.copy()  # Use controller actions for BC instead of rule_actions
 
-    logger.info("Filtered %d invalid rows; %d valid samples remain",
-                np.sum(~valid_mask), len(actions))
+    logger.info(
+        "Filtered %d invalid rows; %d valid samples remain", np.sum(~valid_mask), len(actions)
+    )
 
     return {
         "states": states,
@@ -107,8 +109,8 @@ def load_traces(traces_dir: Path) -> Dict[str, np.ndarray]:
     }
 
 
-
 # ── Phase 1: Behavioral Cloning ─────────────────────────────────────────────
+
 
 def behavioral_cloning(
     agent: LyapunovPPOAgent,
@@ -158,13 +160,16 @@ def behavioral_cloning(
     class_weights = 1.0 / torch.sqrt(class_counts + 1.0)
     class_weights = class_weights / class_weights.sum() * num_classes
     criterion = nn.CrossEntropyLoss(
-        weight=class_weights.to(device), label_smoothing=0.05,
+        weight=class_weights.to(device),
+        label_smoothing=0.05,
     )
 
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=lr,
+        optimizer,
+        max_lr=lr,
         steps_per_epoch=(train_size + batch_size - 1) // batch_size,
-        epochs=epochs, pct_start=0.3,
+        epochs=epochs,
+        pct_start=0.3,
     )
 
     best_train_acc = 0.0
@@ -180,7 +185,7 @@ def behavioral_cloning(
         n_batches = 0
 
         for start in range(0, train_size, batch_size):
-            idx = perm[start:start + batch_size]
+            idx = perm[start : start + batch_size]
             logits = actor(s_train[idx])
             loss = criterion(logits, a_train[idx])
 
@@ -219,7 +224,11 @@ def behavioral_cloning(
         if epoch % 10 == 0 or epoch == 1:
             logger.info(
                 "  BC Epoch %3d/%d — loss=%.4f  train_acc=%.2f%%  test_acc=%.2f%%",
-                epoch, epochs, avg_loss, train_acc * 100, test_acc * 100,
+                epoch,
+                epochs,
+                avg_loss,
+                train_acc * 100,
+                test_acc * 100,
             )
 
         if patience_counter >= patience and best_test_acc >= 0.85:
@@ -230,11 +239,16 @@ def behavioral_cloning(
     if best_state is not None:
         actor.load_state_dict(best_state)
 
-    logger.info("Phase 1 complete — train_acc=%.2f%%  test_acc=%.2f%%", best_train_acc * 100, best_test_acc * 100)
+    logger.info(
+        "Phase 1 complete — train_acc=%.2f%%  test_acc=%.2f%%",
+        best_train_acc * 100,
+        best_test_acc * 100,
+    )
     return best_train_acc, best_test_acc
 
 
 # ── Phase 2: PPO + Lagrangian ────────────────────────────────────────────────
+
 
 def train_ppo(
     agent: LyapunovPPOAgent,
@@ -262,8 +276,12 @@ def train_ppo(
     Dict[str, List[float]]
         Training metric histories.
     """
-    logger.info("Phase 2: PPO+Lagrangian — %d epochs, rollout=%d, budget=%.1f ms",
-                epochs, rollout_length, latency_budget_ms)
+    logger.info(
+        "Phase 2: PPO+Lagrangian — %d epochs, rollout=%d, budget=%.1f ms",
+        epochs,
+        rollout_length,
+        latency_budget_ms,
+    )
 
     # Create env from trace data.
     traces_dir = checkpoint_dir.parent / "traces_replay"
@@ -326,7 +344,10 @@ def train_ppo(
 
         # Compute GAE.
         returns, advantages = agent.compute_gae(
-            rewards_list, values_list, dones_list, next_value,
+            rewards_list,
+            values_list,
+            dones_list,
+            next_value,
         )
 
         # Convert to tensors.
@@ -343,7 +364,7 @@ def train_ppo(
             n = len(states_list)
             perm = torch.randperm(n)
             for start in range(0, n, minibatch_size):
-                idx = perm[start:start + minibatch_size]
+                idx = perm[start : start + minibatch_size]
                 epoch_metrics = agent.update(
                     states=states_t[idx],
                     actions=actions_t[idx],
@@ -362,11 +383,19 @@ def train_ppo(
         # Log detailed violation statistics for debugging
         if epoch <= 5 or epoch % 20 == 0:  # Verbose logging for early epochs and every 20th epoch
             violations = [c for c in costs_list if c > 0]
-            latency_samples = [info.get("latency_ms", 0) for info in
-                             [{"latency_ms": 25 + 15 * np.random.normal()} for _ in range(min(10, len(costs_list)))]]
+            latency_samples = [
+                info.get("latency_ms", 0)
+                for info in [
+                    {"latency_ms": 25 + 15 * np.random.normal()}
+                    for _ in range(min(10, len(costs_list)))
+                ]
+            ]
             logger.info(
                 "  Debug[epoch %d]: %d violations out of %d steps (%.1f%%)",
-                epoch, len(violations), len(costs_list), violation_rate * 100
+                epoch,
+                len(violations),
+                len(costs_list),
+                violation_rate * 100,
             )
             if violations:
                 logger.info("    First few violations: %s", violations[:5])
@@ -385,7 +414,8 @@ def train_ppo(
             logger.info(
                 "  PPO Epoch %3d/%d — reward=%.4f  viol=%.2f%%  λ=%.4f  "
                 "π_loss=%.4f  v_loss=%.4f  entropy=%.4f",
-                epoch, epochs,
+                epoch,
+                epochs,
                 mean_reward,
                 violation_rate * 100,
                 epoch_metrics.get("lambda", 0.0),
@@ -399,7 +429,8 @@ def train_ppo(
                 logger.warning(
                     "  No violations detected at epoch %d! Budget=%.1f ms. "
                     "Consider using --latency-budget with a lower value (e.g., 25-35ms).",
-                    epoch, latency_budget_ms
+                    epoch,
+                    latency_budget_ms,
                 )
 
         # Periodic checkpoint.
@@ -413,8 +444,9 @@ def train_ppo(
 
     # Save metrics for analysis.
     import json
+
     metrics_file = checkpoint_dir / "metrics.json"
-    with open(metrics_file, 'w') as f:
+    with open(metrics_file, "w") as f:
         json.dump(metrics, f, indent=2)
     logger.info("Saved training metrics to %s", metrics_file)
 
@@ -428,23 +460,27 @@ def _write_trace_for_env(traces: Dict[str, np.ndarray], path: Path) -> None:
     n = len(traces["states"])
     resolution_map = {0.0: 320, 0.5: 480, 1.0: 640}
 
-    df = pd.DataFrame({
-        "latency_ms": np.random.default_rng(42).normal(38, 10, n).clip(5, 100),
-        "detection_count": (traces["states"][:, 3] * 50).astype(int),
-        "mean_confidence": traces["states"][:, 4],
-        "defect_area_ratio": traces["states"][:, 5],
-        "gpu_util_percent": traces["states"][:, 9] * 100,
-        "gpu_temp_celsius": traces["states"][:, 10] * 70 + 30,
-        "resolution_active": [resolution_map.get(round(v * 2) / 2, 640)
-                              for v in traces["states"][:, 6]],
-        "segmentation_active": traces["states"][:, 8].astype(bool),
-        "threshold_active": traces["states"][:, 7] * 0.2 + 0.25,
-    })
+    df = pd.DataFrame(
+        {
+            "latency_ms": np.random.default_rng(42).normal(38, 10, n).clip(5, 100),
+            "detection_count": (traces["states"][:, 3] * 50).astype(int),
+            "mean_confidence": traces["states"][:, 4],
+            "defect_area_ratio": traces["states"][:, 5],
+            "gpu_util_percent": traces["states"][:, 9] * 100,
+            "gpu_temp_celsius": traces["states"][:, 10] * 70 + 30,
+            "resolution_active": [
+                resolution_map.get(round(v * 2) / 2, 640) for v in traces["states"][:, 6]
+            ],
+            "segmentation_active": traces["states"][:, 8].astype(bool),
+            "threshold_active": traces["states"][:, 7] * 0.2 + 0.25,
+        }
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path, engine="pyarrow", index=False)
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -470,7 +506,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         type=float,
         default=0.01,
         help="Lambda learning rate η_λ for Lagrangian dual gradient ascent. "
-             "Higher values (0.03-0.05) converge faster from high violations.",
+        "Higher values (0.03-0.05) converge faster from high violations.",
     )
     parser.add_argument(
         "--rollout-length",
@@ -484,7 +520,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         type=float,
         default=50.0,
         help="Latency budget for constraint violations (ms). "
-             "Use lower values (30-35ms) to force more violations for training.",
+        "Use lower values (30-35ms) to force more violations for training.",
     )
     parser.add_argument(
         "--device",

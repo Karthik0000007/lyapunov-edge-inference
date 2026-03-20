@@ -52,6 +52,7 @@ _STATE_DIM: int = 11
 
 # ── Wrapper to make RL agents behave like BaseController ────────────────────
 
+
 class _RLControllerWrapper:
     """Wraps a LyapunovPPOAgent to use the same eval loop as baselines."""
 
@@ -110,6 +111,7 @@ class _BaselineControllerWrapper:
 
 # ── Single-method evaluation ────────────────────────────────────────────────
 
+
 def evaluate_method(
     controller,
     trace_path: str,
@@ -159,6 +161,7 @@ def evaluate_method(
 
 # ── Build all methods ───────────────────────────────────────────────────────
 
+
 def build_methods(
     checkpoint_dir: Path,
     device: torch.device,
@@ -176,11 +179,16 @@ def build_methods(
     # We load the same checkpoint but the eval loop doesn't use conformal/fallback.
     def _make_rl_agent(name: str, ckpt: Path) -> _RLControllerWrapper:
         config = {
-            "ppo": {"gamma": 0.99, "gae_lambda": 0.95, "clip_epsilon": 0.2,
-                     "entropy_coeff": 0.01, "value_loss_coeff": 0.5,
-                     "max_grad_norm": 0.5, "hidden_size": 64},
-            "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01,
-                           "constraint_threshold": 0.01},
+            "ppo": {
+                "gamma": 0.99,
+                "gae_lambda": 0.95,
+                "clip_epsilon": 0.2,
+                "entropy_coeff": 0.01,
+                "value_loss_coeff": 0.5,
+                "max_grad_norm": 0.5,
+                "hidden_size": 64,
+            },
+            "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01, "constraint_threshold": 0.01},
             "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
             "agent": {"checkpoint_dir": str(ckpt)},
         }
@@ -196,25 +204,37 @@ def build_methods(
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
+
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate all baseline controllers and RL agents.",
     )
     parser.add_argument(
-        "--traces", type=str, default="data/telemetry.parquet",
+        "--traces",
+        type=str,
+        default="data/telemetry.parquet",
         help="Path to Parquet trace file.",
     )
     parser.add_argument(
-        "--checkpoint", type=Path, default=Path("checkpoints/ppo_lyapunov"),
+        "--checkpoint",
+        type=Path,
+        default=Path("checkpoints/ppo_lyapunov"),
         help="RL agent checkpoint directory.",
     )
     parser.add_argument("--seeds", type=int, default=10, help="Number of evaluation seeds.")
     parser.add_argument("--frames", type=int, default=10000, help="Frames per seed run.")
-    parser.add_argument("--latency-noise-std", dest="latency_noise_std", type=float, default=2.0,
-                        help="Stochastic noise std for latency (ms).")
+    parser.add_argument(
+        "--latency-noise-std",
+        dest="latency_noise_std",
+        type=float,
+        default=2.0,
+        help="Stochastic noise std for latency (ms).",
+    )
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("results/eval_baselines"),
+        "--output-dir",
+        type=Path,
+        default=Path("results/eval_baselines"),
         help="Output directory.",
     )
     return parser.parse_args(argv)
@@ -231,8 +251,9 @@ def main(argv: List[str] | None = None) -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     methods = build_methods(args.checkpoint, device)
-    logger.info("Evaluating %d methods × %d seeds × %d frames",
-                len(methods), args.seeds, args.frames)
+    logger.info(
+        "Evaluating %d methods × %d seeds × %d frames", len(methods), args.seeds, args.frames
+    )
 
     # Collect results: method_name → list of per-seed metric dicts.
     all_results: Dict[str, List[Dict[str, Any]]] = {}
@@ -273,9 +294,15 @@ def main(argv: List[str] | None = None) -> None:
 
     # ── Aggregate comparison table ──────────────────────────────────────
     method_names = list(all_results.keys())
-    metric_keys = ["p50_latency_ms", "p95_latency_ms", "p99_latency_ms",
-                   "mean_latency_ms", "violation_rate", "mean_reward",
-                   "throughput_mean_fps"]
+    metric_keys = [
+        "p50_latency_ms",
+        "p95_latency_ms",
+        "p99_latency_ms",
+        "mean_latency_ms",
+        "violation_rate",
+        "mean_reward",
+        "throughput_mean_fps",
+    ]
 
     agg_rows: List[Dict[str, Any]] = []
     for name in method_names:
@@ -323,15 +350,17 @@ def main(argv: List[str] | None = None) -> None:
             stat = float(stat)
             p_val = float(p_val)
 
-        wilcoxon_rows.append({
-            "method_A": reference,
-            "method_B": name,
-            "p99_A_mean": float(np.mean(ref_p99)),
-            "p99_B_mean": float(np.mean(other_p99)),
-            "wilcoxon_stat": stat,
-            "p_value": p_val,
-            "significant_005": p_val < 0.05,
-        })
+        wilcoxon_rows.append(
+            {
+                "method_A": reference,
+                "method_B": name,
+                "p99_A_mean": float(np.mean(ref_p99)),
+                "p99_B_mean": float(np.mean(other_p99)),
+                "wilcoxon_stat": stat,
+                "p_value": p_val,
+                "significant_005": p_val < 0.05,
+            }
+        )
 
     wilcoxon_path = args.output_dir / "wilcoxon_tests.csv"
     if wilcoxon_rows:
@@ -350,8 +379,7 @@ def main(argv: List[str] | None = None) -> None:
         f.write("\\label{tab:baselines}\n")
         f.write("\\begin{tabular}{lcccccc}\n")
         f.write("\\toprule\n")
-        f.write("Method & P50 (ms) & P95 (ms) & P99 (ms) & Viol. (\\%) & "
-                "Reward & FPS \\\\\n")
+        f.write("Method & P50 (ms) & P95 (ms) & P99 (ms) & Viol. (\\%) & " "Reward & FPS \\\\\n")
         f.write("\\midrule\n")
         for row in agg_rows:
             name = row["method"].replace("_", "\\_")
@@ -360,12 +388,18 @@ def main(argv: List[str] | None = None) -> None:
                 "& %.1f$\\pm$%.1f & %.3f$\\pm$%.3f & %.0f$\\pm$%.0f \\\\\n"
                 % (
                     name,
-                    row["p50_latency_ms_mean"], row["p50_latency_ms_std"],
-                    row["p95_latency_ms_mean"], row["p95_latency_ms_std"],
-                    row["p99_latency_ms_mean"], row["p99_latency_ms_std"],
-                    row["violation_rate_mean"] * 100, row["violation_rate_std"] * 100,
-                    row["mean_reward_mean"], row["mean_reward_std"],
-                    row["throughput_mean_fps_mean"], row["throughput_mean_fps_std"],
+                    row["p50_latency_ms_mean"],
+                    row["p50_latency_ms_std"],
+                    row["p95_latency_ms_mean"],
+                    row["p95_latency_ms_std"],
+                    row["p99_latency_ms_mean"],
+                    row["p99_latency_ms_std"],
+                    row["violation_rate_mean"] * 100,
+                    row["violation_rate_std"] * 100,
+                    row["mean_reward_mean"],
+                    row["mean_reward_std"],
+                    row["throughput_mean_fps_mean"],
+                    row["throughput_mean_fps_std"],
                 )
             )
         f.write("\\bottomrule\n")

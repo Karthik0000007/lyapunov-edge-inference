@@ -39,7 +39,7 @@ class TestLagrangianDualInit:
         dual = LagrangianDual({})
 
         assert dual.lambda_value == 0.1  # default
-        assert dual.threshold == 0.01    # default
+        assert dual.threshold == 0.01  # default
 
 
 class TestDualUpdate:
@@ -215,7 +215,7 @@ class TestEdgeCases:
         new_lambda = dual.update(1000.0)
 
         assert new_lambda > 0.1
-        assert not float('inf') == new_lambda
+        assert not float("inf") == new_lambda
 
     def test_very_small_learning_rate(self):
         """Works with very small learning rate."""

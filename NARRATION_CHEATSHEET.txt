@@ -1,0 +1,80 @@
+# Demo Narration - Quick Reference
+**⏱️ Goal: 3 minutes | Keep it natural and conversational**
+
+---
+
+## 🎬 Before Starting
+```bash
+# Have this command ready to paste:
+export CUDA_PATH="/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1"
+python main.py --config config/pipeline.yaml --source demo/demo_input_long.mp4 --agent checkpoints/ppo_lyapunov/ --record demo/final_demo_slowed.mp4 --slowdown 2.0 --no-dashboard
+```
+
+---
+
+## INTRO (30 sec)
+*[Show README or project structure]*
+
+"Hello everyone. Today I'm demonstrating a **Lyapunov-constrained reinforcement learning system** for real-time defect detection on edge hardware. This addresses a critical manufacturing challenge: maintaining high detection accuracy while enforcing strict latency constraints on resource-limited GPUs. We're targeting a **hard P99 latency budget of 50 milliseconds** on an RTX 3050 with 4GB VRAM."
+
+---
+
+## START DEMO (30 sec)
+*[Switch to terminal, paste command]*
+
+"Let me start the pipeline. This processes industrial steel surfaces."
+
+*[Run command]*
+
+"This loads: a **YOLOv8-Nano detection engine** with TensorRT FP16, a **conditional segmentation engine**, and the **Lyapunov-PPO agent** making real-time control decisions."
+
+---
+
+## EXPLAIN VISUALS (60 sec)
+*[Video playing - point to elements]*
+
+"Here's what you're seeing:
+
+**Top-right**: Status overlay — **'DEFECT'** in red for anomalies, **'GOOD'** in green for clean surfaces.
+
+**Bounding boxes**: Detected defects — crazing, inclusions, and patches on steel. Each shows class and confidence.
+
+**Top-left HUD**: Real-time metrics:
+- **Latency**: 8-15 milliseconds per frame
+- **Resolution**: dynamically switches between 320, 480, 640
+- **Action index**: current controller configuration
+- **Segmentation**: toggles ON/OFF based on conditions
+- **Detection count**: defects in current frame
+
+**Blue overlay**: Pixel-precise segmentation, enabled only when high-confidence detections appear and latency allows."
+
+---
+
+## ARCHITECTURE (45 sec)
+*[Let video play]*
+
+"The key innovation is the **three-layer adaptive controller**:
+
+**Layer 1**: **Lyapunov-PPO agent** — makes decisions in under 0.1 milliseconds, selecting from 27 configurations trading quality for latency. Lyapunov constraint ensures safety.
+
+**Layer 2**: **Conformal predictor** — provides 99% confidence upper bound on latency, can override the RL agent to prevent violations. Adapts online to distribution shifts.
+
+**Layer 3**: **Rule-based fallback** — deterministic safety net if learned layers fail.
+
+Result: **Sub-10 millisecond inference** on most frames, P99 under 50ms, maintaining **over 80% baseline accuracy**."
+
+---
+
+## CONCLUSION (15 sec)
+*[Video continues]*
+
+"This demonstrates how **reinforcement learning with formal safety constraints** enables real-time AI on edge hardware without compromising reliability. The system is production-ready with full telemetry, drift detection, and online updates. Thank you!"
+
+---
+
+## 💡 Quick Reminders
+- Speak naturally at moderate pace
+- Point to screen elements as you mention them
+- Let video run ~30-45 seconds uninterrupted in middle section
+- Emphasize: "Lyapunov constraint", "P99 latency", "three-layer", "80% accuracy"
+- You've got this! 🚀

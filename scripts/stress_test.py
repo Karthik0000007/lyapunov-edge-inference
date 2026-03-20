@@ -46,6 +46,7 @@ _NUM_FRAMES: int = 2000
 
 # ── Stress scenario base class ──────────────────────────────────────────────
 
+
 class StressScenario(abc.ABC):
     """Base class for stress-test scenarios.
 
@@ -88,6 +89,7 @@ class StressScenario(abc.ABC):
 
 # ── Scenario implementations ────────────────────────────────────────────────
 
+
 class SteadyStateScenario(StressScenario):
     """No perturbation — baseline operating conditions."""
 
@@ -102,8 +104,9 @@ class SteadyStateScenario(StressScenario):
 class DefectBurstScenario(StressScenario):
     """80 % defect rate for 200 frames starting at frame 300."""
 
-    def __init__(self, burst_start: int = 300, burst_len: int = 200,
-                 defect_rate: float = 0.80) -> None:
+    def __init__(
+        self, burst_start: int = 300, burst_len: int = 200, defect_rate: float = 0.80
+    ) -> None:
         self._start = burst_start
         self._len = burst_len
         self._rate = defect_rate
@@ -117,7 +120,7 @@ class DefectBurstScenario(StressScenario):
             obs = obs.copy()
             # Increase detection count (index 3), confidence (4), area ratio (5).
             obs[3] = min(1.0, obs[3] + self._rate * 0.6)  # More detections
-            obs[4] = min(1.0, max(obs[4], 0.85))           # High confidence
+            obs[4] = min(1.0, max(obs[4], 0.85))  # High confidence
             obs[5] = min(1.0, obs[5] + self._rate * 0.3)  # Larger defect area
             # Latency increases due to processing more detections.
             latency_bump = info.get("latency_ms", 30.0) * 0.25
@@ -241,6 +244,7 @@ ALL_SCENARIOS: Dict[str, type] = {
 
 # ── Per-scenario evaluation ─────────────────────────────────────────────────
 
+
 def run_scenario(
     agent: LyapunovPPOAgent,
     scenario: StressScenario,
@@ -298,27 +302,36 @@ def run_scenario(
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
+
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run stress-test scenarios on Lyapunov-PPO agent.",
     )
     parser.add_argument(
-        "--checkpoint", type=Path, default=Path("checkpoints/ppo_lyapunov"),
+        "--checkpoint",
+        type=Path,
+        default=Path("checkpoints/ppo_lyapunov"),
         help="Agent checkpoint directory.",
     )
     parser.add_argument(
-        "--traces", type=str, default="data/telemetry.parquet",
+        "--traces",
+        type=str,
+        default="data/telemetry.parquet",
         help="Path to Parquet trace file.",
     )
     parser.add_argument(
-        "--scenarios", nargs="*", default=None,
+        "--scenarios",
+        nargs="*",
+        default=None,
         help="Scenario names to run (default: all).",
     )
     parser.add_argument("--seeds", type=int, default=5, help="Number of seeds.")
     parser.add_argument("--frames", type=int, default=2000, help="Frames per scenario run.")
     parser.add_argument("--device", type=str, default="cpu", help="Device string.")
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("results/stress_test"),
+        "--output-dir",
+        type=Path,
+        default=Path("results/stress_test"),
         help="Output directory.",
     )
     return parser.parse_args(argv)
@@ -336,11 +349,16 @@ def main(argv: List[str] | None = None) -> None:
 
     # Build agent.
     config = {
-        "ppo": {"gamma": 0.99, "gae_lambda": 0.95, "clip_epsilon": 0.2,
-                 "entropy_coeff": 0.01, "value_loss_coeff": 0.5,
-                 "max_grad_norm": 0.5, "hidden_size": 64},
-        "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01,
-                       "constraint_threshold": 0.01},
+        "ppo": {
+            "gamma": 0.99,
+            "gae_lambda": 0.95,
+            "clip_epsilon": 0.2,
+            "entropy_coeff": 0.01,
+            "value_loss_coeff": 0.5,
+            "max_grad_norm": 0.5,
+            "hidden_size": 64,
+        },
+        "lagrangian": {"lambda_init": 0.1, "lambda_lr": 0.01, "constraint_threshold": 0.01},
         "lyapunov": {"enabled": True, "critic_lr": 3e-4, "drift_tolerance": 0.05},
         "agent": {"checkpoint_dir": str(args.checkpoint)},
     }
@@ -351,8 +369,9 @@ def main(argv: List[str] | None = None) -> None:
     # Select scenarios.
     scenario_names = args.scenarios or list(ALL_SCENARIOS.keys())
     scenarios = [ALL_SCENARIOS[name]() for name in scenario_names]
-    logger.info("Running %d scenarios × %d seeds × %d frames",
-                len(scenarios), args.seeds, args.frames)
+    logger.info(
+        "Running %d scenarios × %d seeds × %d frames", len(scenarios), args.seeds, args.frames
+    )
 
     all_results: List[Dict[str, Any]] = []
 
@@ -385,9 +404,15 @@ def main(argv: List[str] | None = None) -> None:
         name = scenario.name
         runs = [r for r in all_results if r["scenario"] == name]
         row: Dict[str, Any] = {"scenario": name}
-        for key in ["p50_latency_ms", "p95_latency_ms", "p99_latency_ms",
-                    "mean_latency_ms", "max_latency_ms", "violation_rate",
-                    "mean_reward"]:
+        for key in [
+            "p50_latency_ms",
+            "p95_latency_ms",
+            "p99_latency_ms",
+            "mean_latency_ms",
+            "max_latency_ms",
+            "violation_rate",
+            "mean_reward",
+        ]:
             vals = [r[key] for r in runs]
             row[f"{key}_mean"] = float(np.mean(vals))
             row[f"{key}_std"] = float(np.std(vals))

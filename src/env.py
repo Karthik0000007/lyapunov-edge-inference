@@ -23,18 +23,19 @@ import numpy as np
 import pandas as pd
 from gymnasium import spaces
 
-from src.reward import action_l1_distance, compute_reward as _shared_compute_reward
+from src.reward import action_l1_distance
+from src.reward import compute_reward as _shared_compute_reward
 from src.state_features import (
+    _DETECTION_COUNT_MAX,
+    _DETECTION_COUNT_MIN,
+    _GPU_TEMP_MAX,
+    _GPU_TEMP_MIN,
+    _GPU_UTIL_MAX,
+    _GPU_UTIL_MIN,
+    _LATENCY_MAX_MS,
+    _LATENCY_MIN_MS,
     _clamp01,
     _normalize,
-    _DETECTION_COUNT_MIN,
-    _DETECTION_COUNT_MAX,
-    _GPU_TEMP_MIN,
-    _GPU_TEMP_MAX,
-    _GPU_UTIL_MIN,
-    _GPU_UTIL_MAX,
-    _LATENCY_MIN_MS,
-    _LATENCY_MAX_MS,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ _RESOLUTION_MAP: Dict[int, int] = {0: 320, 1: 480, 2: 640}
 
 
 # ── LatencyEnv ───────────────────────────────────────────────────────────────
+
 
 class LatencyEnv(gym.Env):
     """Gymnasium environment replaying logged Parquet traces.
@@ -135,7 +137,7 @@ class LatencyEnv(gym.Env):
 
         # ── Episode state ────────────────────────────────────────────
         self._step_count: int = 0
-        self._offset: int = 0    # Random start offset into trace
+        self._offset: int = 0  # Random start offset into trace
 
         self._resolution_index: int = 2
         self._threshold_index: int = 0
@@ -148,8 +150,7 @@ class LatencyEnv(gym.Env):
         self._np_random: np.random.Generator = np.random.default_rng(seed)
 
         logger.info(
-            "LatencyEnv ready — trace=%s  rows=%d  max_steps=%d  "
-            "budget=%.1f ms  noise_std=%.2f",
+            "LatencyEnv ready — trace=%s  rows=%d  max_steps=%d  " "budget=%.1f ms  noise_std=%.2f",
             self._trace_path,
             self._trace_len,
             self._max_steps,
@@ -192,9 +193,7 @@ class LatencyEnv(gym.Env):
         obs = self._build_observation()
         return obs, {}
 
-    def step(
-        self, action: int
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """Execute one step: apply action, look up latency, compute reward.
 
         Parameters
@@ -207,9 +206,9 @@ class LatencyEnv(gym.Env):
         Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]
             ``(observation, reward, terminated, truncated, info)``
         """
-        assert self.action_space.contains(action), (
-            f"Invalid action {action}; must be in [0, {_NUM_ACTIONS - 1}]"
-        )
+        assert self.action_space.contains(
+            action
+        ), f"Invalid action {action}; must be in [0, {_NUM_ACTIONS - 1}]"
 
         # Decode factored action.
         seg = action % 2
@@ -220,9 +219,7 @@ class LatencyEnv(gym.Env):
         self._resolution_index = max(
             0, min(_NUM_RESOLUTIONS - 1, self._resolution_index + res_delta)
         )
-        self._threshold_index = max(
-            0, min(_NUM_THRESHOLDS - 1, self._threshold_index + thr_delta)
-        )
+        self._threshold_index = max(0, min(_NUM_THRESHOLDS - 1, self._threshold_index + thr_delta))
         self._segmentation_enabled = seg
 
         # Look up latency from trace for current config.
@@ -238,7 +235,7 @@ class LatencyEnv(gym.Env):
         # Update latency window.
         self._latency_window.append(latency)
         if len(self._latency_window) > self._window_size:
-            self._latency_window = self._latency_window[-self._window_size:]
+            self._latency_window = self._latency_window[-self._window_size :]
 
         # ── Reward: Q_t - 0.05 * ||a_t - a_{t-1}||_1 ────────────────
         row = self._trace.iloc[trace_idx]
@@ -307,19 +304,22 @@ class LatencyEnv(gym.Env):
         gpu_util = float(row.get("gpu_util_percent", 50.0))
         gpu_temp = float(row.get("gpu_temp_celsius", 55.0))
 
-        obs = np.array([
-            _normalize(last_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
-            _normalize(mean_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
-            _normalize(p99_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
-            _normalize(det_count, _DETECTION_COUNT_MIN, _DETECTION_COUNT_MAX),
-            _clamp01(mean_conf),
-            _clamp01(area_ratio),
-            _clamp01(self._resolution_index / 2.0),
-            _clamp01(self._threshold_index / 2.0),
-            float(self._segmentation_enabled),
-            _normalize(gpu_util, _GPU_UTIL_MIN, _GPU_UTIL_MAX),
-            _normalize(gpu_temp, _GPU_TEMP_MIN, _GPU_TEMP_MAX),
-        ], dtype=np.float32)
+        obs = np.array(
+            [
+                _normalize(last_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+                _normalize(mean_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+                _normalize(p99_lat, _LATENCY_MIN_MS, _LATENCY_MAX_MS),
+                _normalize(det_count, _DETECTION_COUNT_MIN, _DETECTION_COUNT_MAX),
+                _clamp01(mean_conf),
+                _clamp01(area_ratio),
+                _clamp01(self._resolution_index / 2.0),
+                _clamp01(self._threshold_index / 2.0),
+                float(self._segmentation_enabled),
+                _normalize(gpu_util, _GPU_UTIL_MIN, _GPU_UTIL_MAX),
+                _normalize(gpu_temp, _GPU_TEMP_MIN, _GPU_TEMP_MAX),
+            ],
+            dtype=np.float32,
+        )
 
         return obs
 
@@ -360,8 +360,7 @@ class LatencyEnv(gym.Env):
             return df
 
         logger.warning(
-            "Trace file %s not found; generating synthetic trace "
-            "(1000 rows) for development",
+            "Trace file %s not found; generating synthetic trace " "(1000 rows) for development",
             path,
         )
         return _generate_synthetic_trace(n=1000)
@@ -369,9 +368,8 @@ class LatencyEnv(gym.Env):
 
 # ── Synthetic trace generator ────────────────────────────────────────────────
 
-def _generate_synthetic_trace(
-    n: int = 1000, seed: int = 42
-) -> pd.DataFrame:
+
+def _generate_synthetic_trace(n: int = 1000, seed: int = 42) -> pd.DataFrame:
     """Generate a synthetic telemetry trace for testing."""
     rng = np.random.default_rng(seed)
 
@@ -389,14 +387,16 @@ def _generate_synthetic_trace(
     seg_flags = rng.choice([True, False], size=n)
     thresholds = rng.choice([0.3, 0.4, 0.5], size=n)
 
-    return pd.DataFrame({
-        "latency_ms": latencies,
-        "detection_count": det_counts,
-        "mean_confidence": confidences,
-        "defect_area_ratio": area_ratios,
-        "gpu_util_percent": gpu_utils,
-        "gpu_temp_celsius": gpu_temps,
-        "resolution_active": resolutions,
-        "segmentation_active": seg_flags,
-        "threshold_active": thresholds,
-    })
+    return pd.DataFrame(
+        {
+            "latency_ms": latencies,
+            "detection_count": det_counts,
+            "mean_confidence": confidences,
+            "defect_area_ratio": area_ratios,
+            "gpu_util_percent": gpu_utils,
+            "gpu_temp_celsius": gpu_temps,
+            "resolution_active": resolutions,
+            "segmentation_active": seg_flags,
+            "threshold_active": thresholds,
+        }
+    )

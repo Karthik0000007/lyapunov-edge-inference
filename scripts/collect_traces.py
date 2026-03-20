@@ -37,16 +37,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.baselines import RuleBasedController
 from src.state_features import (
+    _DETECTION_COUNT_MAX,
+    _GPU_TEMP_MAX,
+    _GPU_TEMP_MIN,
+    _GPU_UTIL_MAX,
+    _LATENCY_MAX_MS,
+    _LATENCY_MIN_MS,
     ControllerAction,
     ControllerState,
     _clamp01,
     _normalize,
-    _DETECTION_COUNT_MAX,
-    _GPU_TEMP_MIN,
-    _GPU_TEMP_MAX,
-    _GPU_UTIL_MAX,
-    _LATENCY_MIN_MS,
-    _LATENCY_MAX_MS,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,7 @@ _LATENCY_BUDGET_MS: float = 50.0
 
 
 # ── Synthetic trace collector ────────────────────────────────────────────────
+
 
 def collect_synthetic(
     num_frames: int,
@@ -152,61 +153,63 @@ def collect_synthetic(
 
         resolution_map = {0: 320, 1: 480, 2: 640}
 
-        records.append({
-            # TelemetryRecord fields.
-            "frame_id": frame_id,
-            "timestamp": time.time(),
-            "latency_ms": latency_ms,
-            "latency_preprocess_ms": latency_ms * 0.1,
-            "latency_detect_ms": latency_ms * 0.5,
-            "latency_segment_ms": latency_ms * 0.3 if segmentation_enabled else 0.0,
-            "latency_postprocess_ms": latency_ms * 0.1,
-            "detection_count": det_count,
-            "mean_confidence": mean_conf,
-            "defect_area_ratio": area_ratio,
-            "controller_action": action,
-            "resolution_active": resolution_map.get(resolution_index, 640),
-            "segmentation_active": bool(segmentation_enabled),
-            "threshold_active": 0.25 + threshold_index * 0.1,
-            "gpu_util_percent": gpu_util,
-            "gpu_temp_celsius": gpu_temp,
-            "gpu_memory_used_mb": 0.0,
-            "conformal_upper_bound_ms": 0.0,
-            "conformal_alpha": 0.01,
-            "ks_p_value": 1.0,
-            "drift_alert": False,
-            "lyapunov_value": 0.0,
-            "constraint_cost": constraint_cost,
-            "reward": reward,
-            # Exploration metadata.
-            "explored": explored,
-            "epsilon": epsilon,
-            "rule_action": rule_action,
-            # State vector (for RL training).
-            "state_0": float(obs[0]),
-            "state_1": float(obs[1]),
-            "state_2": float(obs[2]),
-            "state_3": float(obs[3]),
-            "state_4": float(obs[4]),
-            "state_5": float(obs[5]),
-            "state_6": float(obs[6]),
-            "state_7": float(obs[7]),
-            "state_8": float(obs[8]),
-            "state_9": float(obs[9]),
-            "state_10": float(obs[10]),
-            # Next state vector.
-            "next_state_0": float(next_obs[0]),
-            "next_state_1": float(next_obs[1]),
-            "next_state_2": float(next_obs[2]),
-            "next_state_3": float(next_obs[3]),
-            "next_state_4": float(next_obs[4]),
-            "next_state_5": float(next_obs[5]),
-            "next_state_6": float(next_obs[6]),
-            "next_state_7": float(next_obs[7]),
-            "next_state_8": float(next_obs[8]),
-            "next_state_9": float(next_obs[9]),
-            "next_state_10": float(next_obs[10]),
-        })
+        records.append(
+            {
+                # TelemetryRecord fields.
+                "frame_id": frame_id,
+                "timestamp": time.time(),
+                "latency_ms": latency_ms,
+                "latency_preprocess_ms": latency_ms * 0.1,
+                "latency_detect_ms": latency_ms * 0.5,
+                "latency_segment_ms": latency_ms * 0.3 if segmentation_enabled else 0.0,
+                "latency_postprocess_ms": latency_ms * 0.1,
+                "detection_count": det_count,
+                "mean_confidence": mean_conf,
+                "defect_area_ratio": area_ratio,
+                "controller_action": action,
+                "resolution_active": resolution_map.get(resolution_index, 640),
+                "segmentation_active": bool(segmentation_enabled),
+                "threshold_active": 0.25 + threshold_index * 0.1,
+                "gpu_util_percent": gpu_util,
+                "gpu_temp_celsius": gpu_temp,
+                "gpu_memory_used_mb": 0.0,
+                "conformal_upper_bound_ms": 0.0,
+                "conformal_alpha": 0.01,
+                "ks_p_value": 1.0,
+                "drift_alert": False,
+                "lyapunov_value": 0.0,
+                "constraint_cost": constraint_cost,
+                "reward": reward,
+                # Exploration metadata.
+                "explored": explored,
+                "epsilon": epsilon,
+                "rule_action": rule_action,
+                # State vector (for RL training).
+                "state_0": float(obs[0]),
+                "state_1": float(obs[1]),
+                "state_2": float(obs[2]),
+                "state_3": float(obs[3]),
+                "state_4": float(obs[4]),
+                "state_5": float(obs[5]),
+                "state_6": float(obs[6]),
+                "state_7": float(obs[7]),
+                "state_8": float(obs[8]),
+                "state_9": float(obs[9]),
+                "state_10": float(obs[10]),
+                # Next state vector.
+                "next_state_0": float(next_obs[0]),
+                "next_state_1": float(next_obs[1]),
+                "next_state_2": float(next_obs[2]),
+                "next_state_3": float(next_obs[3]),
+                "next_state_4": float(next_obs[4]),
+                "next_state_5": float(next_obs[5]),
+                "next_state_6": float(next_obs[6]),
+                "next_state_7": float(next_obs[7]),
+                "next_state_8": float(next_obs[8]),
+                "next_state_9": float(next_obs[9]),
+                "next_state_10": float(next_obs[10]),
+            }
+        )
 
         obs = next_obs
 
@@ -233,6 +236,7 @@ def collect_synthetic(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -294,7 +298,10 @@ def main(argv: List[str] | None = None) -> None:
 
     logger.info(
         "Collecting %d frames — source=%s  ε₀=%.3f  decay=%.4f  ε_min=%.3f",
-        args.frames, args.source, args.epsilon, args.epsilon_decay,
+        args.frames,
+        args.source,
+        args.epsilon,
+        args.epsilon_decay,
         args.epsilon_min,
     )
 
@@ -317,7 +324,9 @@ def main(argv: List[str] | None = None) -> None:
     mean_reward = df["reward"].mean()
     logger.info(
         "Summary — exploration=%.1f%%  violations=%.1f%%  mean_reward=%.4f",
-        explore_rate, violation_rate, mean_reward,
+        explore_rate,
+        violation_rate,
+        mean_reward,
     )
 
 

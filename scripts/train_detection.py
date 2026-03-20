@@ -43,7 +43,9 @@ _NEU_CLASSES: List[str] = [
 ]
 
 
-def _parse_voc_annotation(xml_path: Path) -> Tuple[str, List[Tuple[int, float, float, float, float]]]:
+def _parse_voc_annotation(
+    xml_path: Path,
+) -> Tuple[str, List[Tuple[int, float, float, float, float]]]:
     """Parse a Pascal-VOC XML annotation into YOLO format.
 
     Returns
@@ -167,6 +169,7 @@ def _prepare_yolo_dataset(neu_root: Path, output_dir: Path) -> Path:
 
 # ── Training ─────────────────────────────────────────────────────────────────
 
+
 def train(
     data_path: Path,
     epochs: int,
@@ -189,7 +192,10 @@ def train(
 
     logger.info(
         "Starting YOLOv8n training — epochs=%d  imgsz=%d  batch=%d  device=%s",
-        epochs, imgsz, batch, device,
+        epochs,
+        imgsz,
+        batch,
+        device,
     )
 
     model = YOLO("yolov8n.pt")
@@ -223,6 +229,7 @@ def train(
     if train_dir is None:
         # Last resort: search recursively
         import glob
+
         weights_paths = list(Path(output_dir).glob("**/yolov8n_finetune/weights"))
         if weights_paths:
             train_dir = weights_paths[0].parent
@@ -267,6 +274,7 @@ def train(
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

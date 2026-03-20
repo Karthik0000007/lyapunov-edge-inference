@@ -158,8 +158,13 @@ class TestRewardComputation:
         env.reset()
         _, _, _, _, info = env.step(0)
         expected_keys = {
-            "constraint_cost", "latency_ms", "quality", "churn",
-            "resolution_index", "threshold_index", "segmentation_enabled",
+            "constraint_cost",
+            "latency_ms",
+            "quality",
+            "churn",
+            "resolution_index",
+            "threshold_index",
+            "segmentation_enabled",
         }
         assert expected_keys.issubset(info.keys())
 
@@ -209,5 +214,6 @@ class TestCheckEnv:
 
     def test_gymnasium_check_env_passes(self, env: LatencyEnv):
         from gymnasium.utils.env_checker import check_env
+
         # check_env raises on failure; no exception = pass.
         check_env(env, skip_render_check=True)
