@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -103,7 +103,7 @@ class LatencyEnv(gym.Env):
     ``resolution_active``, ``segmentation_active``, ``threshold_active``.
     """
 
-    metadata = {"render_modes": []}
+    metadata: Dict[str, List[str]] = {"render_modes": []}
 
     def __init__(
         self,

@@ -221,7 +221,8 @@ class TelemetryLogger:
         rotation_frames: Optional[int] = None,
         window_size: int = _DEFAULT_WINDOW_SIZE,
     ) -> None:
-        self._output_dir = Path(output_dir or os.environ.get("TELEMETRY_DIR", _DEFAULT_OUTPUT_DIR))
+        dir_str: str = output_dir or os.environ.get("TELEMETRY_DIR") or _DEFAULT_OUTPUT_DIR
+        self._output_dir = Path(dir_str)
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
         self._rotation_frames = rotation_frames or int(

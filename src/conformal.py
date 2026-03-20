@@ -162,7 +162,7 @@ class ConformalPredictor:
             Upper bound on latency (ms).
         """
         predicted = self._predictor.predict(state, action)
-        return predicted + self._quantile
+        return float(predicted + self._quantile)
 
     # ── Override decision ────────────────────────────────────────────────
 

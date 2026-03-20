@@ -97,8 +97,8 @@ class IntensityDriftDetector:
             return 1.0
 
         # Two-sample KS test on the empirical CDFs derived from histograms.
-        _, p_value = stats.ks_2samp(self._reference_hist, current_hist)
-        p_value = float(p_value)
+        _, p_value_raw = stats.ks_2samp(self._reference_hist, current_hist)
+        p_value: float = float(p_value_raw)
         self._last_p_value = p_value
         self._p_value_history.append(p_value)
         return p_value

@@ -332,7 +332,7 @@ class LyapunovManager:
         loss.backward()
         self._critic_optim.step()
 
-        return loss.item()
+        return float(loss.item())
 
     def update_transition(
         self,
@@ -367,7 +367,7 @@ class LyapunovManager:
         loss.backward()
         self._trans_optim.step()
 
-        return loss.item()
+        return float(loss.item())
 
     # ── Lyapunov value query ─────────────────────────────────────────────
 
@@ -378,7 +378,7 @@ class LyapunovManager:
         s = state.to(self._device)
         if s.dim() == 1:
             s = s.unsqueeze(0)
-        val = self.critic(s).item()
+        val: float = float(self.critic(s).item())
         return val if np.isfinite(val) else 0.0
 
     # ── Checkpoint I/O ───────────────────────────────────────────────────
