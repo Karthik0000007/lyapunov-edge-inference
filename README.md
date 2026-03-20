@@ -7,7 +7,7 @@ The core contribution is a **three-layer adaptive compute controller** combining
 2. **Conformal Prediction Safety Certificate** — a distribution-free statistical layer providing formal P99 latency bounds with online adaptation to distribution shift (ACI).
 3. **Rule-Based Fallback** — a deterministic emergency controller that ensures absolute safety when the learned layers fail.
 
-> See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical documentation.
+> See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical documentation used to implement the pipeline.
 
 ---
 
